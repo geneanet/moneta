@@ -14,9 +14,14 @@ def run():
     parser.add_argument('--listen', nargs='?', default='127.0.0.1:32000', help='Listen host:port')
     parser.add_argument('--zookeeper', nargs='?', default='127.0.0.1:2181', help='Zookeeper host:port')
     parser.add_argument('--nodename', nargs='?', default=uuid.uuid1().hex, help='Node name')
+    parser.add_argument('--logfile', nargs='?', default=None, help='Log file')
     args = parser.parse_args()
 
-    logging.basicConfig()
+    if args.logfile:
+        logging.basicConfig(filename = args.logfile, format =  '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    else:
+        logging.basicConfig()
+
     logging.getLogger('moneta').setLevel(logging.INFO)
     logging.getLogger('moneta.http').setLevel(logging.WARNING)
 
