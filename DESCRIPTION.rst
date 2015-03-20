@@ -1,0 +1,2 @@
+Moneta is a fault-tolerant, distributed task manager.
+It is intended to be a replacement for the traditional UNIX cron systems, allowing a scheduled execution of tasks on one or several nodes of a cluster.
