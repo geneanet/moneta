@@ -12,8 +12,9 @@ from moneta.server import MonetaServer
 def run():
     parser = argparse.ArgumentParser()
     parser.add_argument('--listen', nargs='?', default='127.0.0.1:32000', help='Listen host:port')
-    parser.add_argument('--zookeeper', nargs='?', default='127.0.0.1:2181', help='Zookeeper host:port')
+    parser.add_argument('--zookeeper', nargs='?', default='127.0.0.1:2181', help='Zookeeper hosts (comma-separated list of host:port items)')
     parser.add_argument('--nodename', nargs='?', default=uuid.uuid1().hex, help='Node name')
+    parser.add_argument('--pool', nargs='?', default="default", help='Pool')
     parser.add_argument('--logfile', nargs='?', default=None, help='Log file')
     args = parser.parse_args()
 
@@ -29,7 +30,7 @@ def run():
 
     try:
         logger.debug('Starting')
-        cluster = MonetaCluster(args.nodename, args.listen, args.zookeeper)
+        cluster = MonetaCluster(args.nodename, args.listen, args.zookeeper, pool = args.pool)
         server = MonetaServer(cluster, args.listen)
         logger.info('Started')
 
