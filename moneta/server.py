@@ -327,7 +327,6 @@ class MonetaServer(HTTPServer):
         msgbody = dedent(
             u"""\
             Task: {task[name]}
-            Description: {task[description]}
             -------------------------------------------------------------------------------
             Status: {report[status]}
             Executed on node: {report[node]}
