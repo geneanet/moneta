@@ -73,24 +73,26 @@ class MonetaScheduler(object):
 
         task_config = self.cluster.config['tasks'][task]
 
-        if 'pool' in task_config:
-            pool = task_config['pool']
+        if 'pools' in task_config:
+            pools = task_config['pools']
         else:
-            pool = "default"
+            pools = [ "default" ]
 
-        if 'mode' in task_config and task_config['mode'] == 'all':
-            nodes = self.cluster.pools[pool]
-        else:
-            nodes = [ random.choice(self.cluster.pools[pool]) ]
+        nodes = []
+        for pool in pools:
+            nodes += self.cluster.pools[pool]
+
+        if 'mode' in task_config and task_config['mode'] == 'any':
+            nodes = [ random.choice(nodes) ]
 
         if not nodes:
-            logger.warning("There are no nodes in pool %s to run task %s !", pool, task)
+            logger.warning("There are no nodes to run task %s !", task)
             return
 
         for node in nodes:
             addr = parse_host_port(self.cluster.nodes[node]['address'])
             client = HTTPClient(addr)
-            logger.info("Running task %s on node %s (pool %s)", task, node, pool)
+            logger.info("Running task %s on node %s", task, node)
             ret = client.request(HTTPRequest(uri = '/tasks/%s' % task, method = 'EXECUTE'))
             if ret.code != 200:
                 logger.error ("Node %s answered %d when asked to execute task %s !", node, ret.code, task)
