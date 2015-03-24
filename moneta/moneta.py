@@ -5,6 +5,8 @@ from __future__ import absolute_import
 import uuid
 import argparse
 import logging
+import sys
+import signal
 
 from moneta.cluster import MonetaCluster
 from moneta.server import MonetaServer
@@ -21,6 +23,7 @@ def run():
     parser.add_argument('--loglevel', nargs='?', default="info", help='Log level', choices = ['debug', 'info', 'warning', 'error', 'critical', 'fatal'])
     args = parser.parse_args()
 
+    # Logging
     if args.logfile:
         logging.basicConfig(filename = args.logfile, format =  '%(asctime)s [%(name)s] %(levelname)s: %(message)s')
     else:
@@ -37,6 +40,14 @@ def run():
 
     logger.setLevel(loglevel)
 
+    # Signals
+    def handle_sigterm(_signo, _stack_frame):
+        logger.debug('Received SIGTERM.')
+        sys.exit(0)
+
+    signal.signal(signal.SIGTERM, handle_sigterm)
+
+    # Main
     try:
         logger.debug('Starting')
         cluster = MonetaCluster(args.nodename, args.listen, args.zookeeper, pools = args.pools)
@@ -45,7 +56,12 @@ def run():
 
         server.run_forever()
 
-    except BaseException:
+    except (SystemExit, KeyboardInterrupt):
+        logger.info('Termination requested.')
         cluster.stop()
+        sys.exit(0)
+
+    except BaseException:
         logger.exception('An exception occurred. Terminating moneta.')
-        exit(1)
+        cluster.stop()
+        sys.exit(1)
