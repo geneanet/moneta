@@ -272,6 +272,10 @@ class MonetaServer(HTTPServer):
 
             taskconfig = self.cluster.config['tasks'][task]
 
+            report['task_name'] = taskconfig['name']
+            if 'tags' in taskconfig:
+                report['task_tags'] = taskconfig['tags']
+
             if 'mailreport' in taskconfig and ((taskconfig['mailreport'] == 'error' and report['status'] != 'ok') or taskconfig['mailreport'] == 'always'):
                 self.mail_report(task, report)
 
