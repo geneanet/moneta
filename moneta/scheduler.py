@@ -80,7 +80,10 @@ class MonetaScheduler(object):
 
         nodes = []
         for pool in pools:
-            nodes += self.cluster.pools[pool]
+            if pool in self.cluster.pools:
+                nodes += self.cluster.pools[pool]
+            else:
+                logger.warning("Task %s should run on pool %s but there is no such pool in the cluster.", task, pool)
 
         nodes = list(set(nodes))
 
@@ -92,10 +95,13 @@ class MonetaScheduler(object):
             return
 
         for node in nodes:
-            addr = parse_host_port(self.cluster.nodes[node]['address'])
-            client = HTTPClient(addr)
-            logger.info("Running task %s on node %s", task, node)
-            ret = client.request(HTTPRequest(uri = '/tasks/%s' % task, method = 'EXECUTE'))
-            if ret.code != 200:
-                logger.error ("Node %s answered %d when asked to execute task %s !", node, ret.code, task)
+            try:
+                addr = parse_host_port(self.cluster.nodes[node]['address'])
+                client = HTTPClient(addr)
+                logger.info("Running task %s on node %s", task, node)
+                ret = client.request(HTTPRequest(uri = '/tasks/%s' % task, method = 'EXECUTE'))
+                if ret.code != 200:
+                    logger.error ("Node %s answered %d when asked to execute task %s !", node, ret.code, task)
+            except Exception:
+                logger.exception("An exception occurred when trying to run task %s on node %s.", task, node)
 
