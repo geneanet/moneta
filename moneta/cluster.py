@@ -17,7 +17,7 @@ from moneta.scheduler import MonetaScheduler
 logger = logging.getLogger('moneta.cluster')
 
 class MonetaCluster(object):
-    def __init__(self, nodename, addr, zkhosts, handler=SequentialGeventHandler(), pool = "default"):
+    def __init__(self, nodename, addr, zkhosts, handler=SequentialGeventHandler(), pools = ["default"]):
         self.nodename = nodename
         self.addr = addr
 
@@ -40,14 +40,15 @@ class MonetaCluster(object):
         self.electionticket = None
 
         try:
-            self.zk.create('/moneta/nodes/%s' % self.nodename, json.dumps({ "address": self.addr, "pool": pool}), ephemeral = True, makepath = True)
+            self.zk.create('/moneta/nodes/%s' % self.nodename, json.dumps({ "address": self.addr, "pools": pools}), ephemeral = True, makepath = True)
         except NodeExistsError:
             raise Exception("Another node with the same ID already exists in the cluster.")
 
-        try:
-            self.zk.create('/moneta/pools/%s/%s' % (pool, self.nodename), self.addr, ephemeral = True, makepath = True)
-        except NodeExistsError:
-            raise Exception("Unable to join pool %s." % pool)
+        for pool in pools:
+            try:
+                self.zk.create('/moneta/pools/%s/%s' % (pool, self.nodename), self.addr, ephemeral = True, makepath = True)
+            except NodeExistsError:
+                raise Exception("Unable to join pool %s." % pool)
 
         try:
             self.zk.create('/moneta/config', json.dumps(self.config), makepath = True)
@@ -89,11 +90,13 @@ class MonetaCluster(object):
 
         pools = {}
         for (node, nodeconf) in nodes.iteritems():
-            pool = nodeconf['pool']
-            if pool in pools:
-                pools[pool].append(node)
-            else:
-                pools[pool] = [node]
+            nodepools = nodeconf['pools']
+
+            for nodepool in nodepools:
+                if nodepool in pools:
+                    pools[nodepool].append(node)
+                else:
+                    pools[nodepool] = [node]
 
         self.nodes = nodes
         self.pools = pools
