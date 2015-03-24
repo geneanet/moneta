@@ -82,6 +82,8 @@ class MonetaScheduler(object):
         for pool in pools:
             nodes += self.cluster.pools[pool]
 
+        nodes = list(set(nodes))
+
         if 'mode' in task_config and task_config['mode'] == 'any':
             nodes = [ random.choice(nodes) ]
 
