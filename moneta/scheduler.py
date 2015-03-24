@@ -62,7 +62,7 @@ class MonetaScheduler(object):
                         break
 
                 if should_run:
-                    self.run_task(task_id)
+                    gevent.spawn(self.run_task, task_id)
 
         self.cluster.update_last_tick(this_tick)
 
