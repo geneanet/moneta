@@ -8,12 +8,12 @@ class Schedule(object):
     """ Class representing a cron schedule """
 
     def __init__(self, month = None, week = None, dayofweek = None, dayofmonth = None, hour = None, minute = None):
-        self.month = self.__expand(month, 12)
-        self.week = self.__expand(week, 52)
-        self.dayofweek = self.__expand(dayofweek, 7)
-        self.dayofmonth = self.__expand(dayofmonth, 31)
-        self.hour = self.__expand(hour, 23)
-        self.minute = self.__expand(minute, 59)
+        self.month = self.__expand(month, 1, 12)
+        self.week = self.__expand(week, 1, 52)
+        self.dayofweek = self.__expand(dayofweek, 1, 7)
+        self.dayofmonth = self.__expand(dayofmonth, 1, 31)
+        self.hour = self.__expand(hour, 0, 23)
+        self.minute = self.__expand(minute, 0, 59)
 
     def match_interval(self, beginning, end, include_beginning = True, include_end = False):
         """ Check if the task is scheduled at least one time in the interval """
@@ -61,13 +61,13 @@ class Schedule(object):
             return needle == haystack
 
     @staticmethod
-    def __expand(data, maximum):
+    def __expand(data, minimum, maximum):
         """ Expands */x into a list from 0 to maximum with steps of x. Recursive. """
 
         if isinstance(data, list):
             out = []
             for item  in data:
-                canon = Schedule.__expand(item, maximum)
+                canon = Schedule.__expand(item, minimum, maximum)
                 if isinstance(canon, list):
                     out.extend(canon)
                 else:
@@ -75,9 +75,9 @@ class Schedule(object):
             return out
         elif (isinstance(data, str) or isinstance(data, unicode)) and data.startswith('*/'):
             step = int(data[2:])
-            return range(0, maximum, step)
+            return range(minimum, maximum + 1, step)
         elif (isinstance(data, str) or isinstance(data, unicode)) and data == '*':
-            return range(0, maximum)
+            return range(minimum, maximum + 1)
         else:
             return data
 
