@@ -66,18 +66,42 @@ class Schedule(object):
 
         if isinstance(data, list):
             out = []
+
             for item  in data:
-                canon = Schedule.__expand(item, minimum, maximum)
-                if isinstance(canon, list):
-                    out.extend(canon)
+                expanded = Schedule.__expand(item, minimum, maximum)
+                if isinstance(expanded, list):
+                    out.extend(expanded)
                 else:
-                    out.append(canon)
-            return out
-        elif (isinstance(data, str) or isinstance(data, unicode)) and data.startswith('*/'):
-            step = int(data[2:])
-            return range(minimum, maximum + 1, step)
-        elif (isinstance(data, str) or isinstance(data, unicode)) and data == '*':
-            return range(minimum, maximum + 1)
+                    out.append(expanded)
+
+            return list(set(out))
+
+        elif isinstance(data, str) or isinstance(data, unicode):
+            int_re = re.match(r'^[0-9]+$', data)
+            list_re = re.match(r'^[0-9\-*/]+(,[0-9\-*/]+)+$', data)
+            range_re = re.match(r'^(?P<min>[0-9]+)-(?P<max>[0-9]+)$', data)
+            wildcard_re = re.match(r'^\*(?:/(?P<step>[0-9]+))?$', data)
+
+            if int_re:
+                return int(data)
+
+            elif list_re:
+                return Schedule.__expand(data.split(','), minimum, maximum)
+
+            elif range_re:
+                return range(int(range_re.group('min')), int(range_re.group('max')) + 1)
+
+            elif wildcard_re:
+                if wildcard_re.group('step'):
+                    step = int(wildcard_re.group('step'))
+                else:
+                    step = 1
+
+                return range(minimum, maximum + 1, step)
+
+            else:
+                raise Exception('Unable to parse schedule: %s', data)
+
         else:
             return data
 
