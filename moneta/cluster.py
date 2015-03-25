@@ -20,6 +20,7 @@ class MonetaCluster(object):
     def __init__(self, nodename, addr, zkhosts, handler=SequentialGeventHandler(), pools = ["default"]):
         self.nodename = nodename
         self.addr = addr
+        self.mypools = pools
 
         self.zk = KazooClient(zkhosts, handler = handler)
         self.zk.start()
@@ -44,12 +45,6 @@ class MonetaCluster(object):
         except NodeExistsError:
             raise Exception("Another node with the same ID already exists in the cluster.")
 
-        for pool in pools:
-            try:
-                self.zk.create('/moneta/pools/%s/%s' % (pool, self.nodename), self.addr, ephemeral = True, makepath = True)
-            except NodeExistsError:
-                raise Exception("Unable to join pool %s." % pool)
-
         try:
             self.zk.create('/moneta/config', json.dumps(self.config), makepath = True)
         except NodeExistsError:
@@ -57,7 +52,20 @@ class MonetaCluster(object):
         finally:
             self.zk.DataWatch("/moneta/config", self.handle_config_update)
 
+        self.join_pools()
+
         self.contend_for_lead()
+
+    def join_pools(self):
+        for pool in self.mypools:
+            try:
+                self.zk.create('/moneta/pools/%s/%s' % (pool, self.nodename), self.addr, ephemeral = True, makepath = True)
+            except NodeExistsError:
+                raise Exception("Unable to join pool %s." % pool)
+
+    def quit_pools(self):
+        for pool in self.mypools:
+            self.zk.delete('/moneta/pools/%s/%s' % (pool, self.nodename))
 
     def contend_for_lead(self):
         self.electionticket = self.zk.create('/moneta/election/', self.nodename, ephemeral = True, sequence = True, makepath = True)
