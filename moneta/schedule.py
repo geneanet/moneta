@@ -3,15 +3,16 @@
 from __future__ import absolute_import
 
 import datetime
+import re
 
 class Schedule(object):
     """ Class representing a cron schedule """
 
     def __init__(self, month = None, week = None, dayofweek = None, dayofmonth = None, hour = None, minute = None):
-        self.month = self.__expand(month, 1, 12)
-        self.week = self.__expand(week, 1, 52)
-        self.dayofweek = self.__expand(dayofweek, 1, 7)
-        self.dayofmonth = self.__expand(dayofmonth, 1, 31)
+        self.month = self.__expand(month, 0, 12)
+        self.week = self.__expand(week, 0, 52)
+        self.dayofweek = self.__expand(dayofweek, 0, 7)
+        self.dayofmonth = self.__expand(dayofmonth, 0, 31)
         self.hour = self.__expand(hour, 0, 23)
         self.minute = self.__expand(minute, 0, 59)
 
