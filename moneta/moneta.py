@@ -4,7 +4,7 @@ from __future__ import absolute_import
 
 import uuid
 import argparse
-import logging
+import logging, logging.config
 import sys
 import signal
 
@@ -21,6 +21,7 @@ def run():
     parser.add_argument('--pools', nargs='?', type=lambda s: s.split(','), default="default", help='Comma separated list of pools')
     parser.add_argument('--logfile', nargs='?', default=None, help='Log file')
     parser.add_argument('--loglevel', nargs='?', default="info", help='Log level', choices = ['debug', 'info', 'warning', 'error', 'critical', 'fatal'])
+    parser.add_argument('--logconfig', nargs='?', default=None, help='Logging configuration file (overrides --loglevel and --logfile)')
     args = parser.parse_args()
 
     # Logging
@@ -39,6 +40,9 @@ def run():
     }[args.loglevel]
 
     logger.setLevel(loglevel)
+
+    if args.logconfig:
+        logging.config.fileConfig(args.logconfig)
 
     # Signals
     def handle_sigterm(_signo, _stack_frame):
