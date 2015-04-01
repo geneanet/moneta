@@ -21,22 +21,31 @@ class MonetaScheduler(object):
         self.cluster = cluster
         self.running = False
 
+        self.greenlet = None
+
     def run(self):
         """ Start scheduler """
+        if self.running:
+            return
+
+        logger.debug("Starting scheduler.")
+        self.greenlet = gevent.spawn(self.ticker)
         self.running = True
-        gevent.spawn(self.ticker)
 
     def stop(self):
         """ Stop scheduler """
+        if not self.running:
+            return
+
+        logger.debug("Stopping scheduler.")
+        self.greenlet.kill()
         self.running = False
 
     def ticker(self):
         """ Method executed every /tick/ seconds when scheduler is running """
-        if not self.running:
-            return
 
-        gevent.spawn_later(self.cluster.config['tick'], self.ticker)
         gevent.spawn(self.tick)
+        self.greenlet = gevent.spawn_later(self.cluster.config['tick'], self.ticker)
 
     def tick(self):
         """ Every tick, run jobs which had to be started between now and the last tick """
