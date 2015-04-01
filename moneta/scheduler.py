@@ -96,12 +96,12 @@ class MonetaScheduler(object):
 
         nodes = list(set(nodes))
 
-        if 'mode' in task_config and task_config['mode'] == 'any':
-            nodes = [ random.choice(nodes) ]
-
         if not nodes:
             logger.warning("There are no nodes to run task %s !", task)
             return
+
+        if 'mode' in task_config and task_config['mode'] == 'any':
+            nodes = [ random.choice(nodes) ]
 
         for node in nodes:
             try:
