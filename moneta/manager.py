@@ -13,7 +13,7 @@ import uuid
 
 from gevent.subprocess import Popen
 from subprocess import PIPE
-from gevent import Greenlet
+from gevent import Greenlet, GreenletExit
 
 from moneta.http.client import HTTPClient
 from moneta.http.http import HTTPRequest, parse_host_port
@@ -29,13 +29,17 @@ class MonetaManager(object):
         self.running_tasks = {}
         self.enabled = True
 
-    def shutdown(self):
-        """Disable new executions and wait for all currently running tasks to finish"""
+    def shutdown(self, kill = False):
+        """Disable new executions and either wait for all currently running tasks to finish or kill them"""
 
         logger.info("Shutting down manager: disabling task execution on this node")
 
         self.enabled = False
-        self.wait_until_finished()
+
+        if kill:
+            self.kill_all()
+        else:
+            self.wait_until_finished()
 
     def wait_until_finished(self):
         """Wait for all currently running tasks to finish"""
@@ -46,6 +50,16 @@ class MonetaManager(object):
 
         for greenlet in greenlets:
             greenlet.join()
+
+    def kill_all(self, wait = True):
+        """Kill all running tasks"""
+
+        greenlets = [ task['greenlet'] for task in self.running_tasks.itervalues() ]
+
+        logger.debug("Killing %d currently running tasks", len(greenlets))
+
+        for greenlet in greenlets:
+            greenlet.kill(block = wait)
 
     def execute_task(self, task):
         """Spawn a greenlet to execute a task"""
@@ -124,6 +138,16 @@ class MonetaManager(object):
                 "returncode": returncode,
                 "stdout": stdout,
                 "stderr": stderr
+            })
+
+        except GreenletExit:
+            logger.info("Killing currently running task %s", task)
+            if process:
+                process.kill()
+
+            report.update({
+                "status": "fail",
+                "error": "Killed"
             })
 
         except Exception, e:

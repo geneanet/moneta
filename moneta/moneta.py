@@ -48,8 +48,9 @@ def run():
 
     # Signals
     def handle_sigterm():
-        """ Dirty exit, currently running tasks will not be collected and reports will not be sent """
+        """ Dirty exit, currently running tasks will be killed """
         logger.info('Received SIGTERM.')
+        manager.shutdown(kill = True)
         sys.exit(0)
 
     def handle_sigusr1():
