@@ -7,6 +7,7 @@ import argparse
 import logging, logging.config
 import sys
 import signal
+import gevent
 
 from moneta.cluster import MonetaCluster
 from moneta.manager import MonetaManager
@@ -46,17 +47,17 @@ def run():
         logging.config.fileConfig(args.logconfig)
 
     # Signals
-    def handle_sigterm(_signo, _stack_frame):
+    def handle_sigterm():
         logger.info('Received SIGTERM.')
         sys.exit(0)
 
-    def handle_sigusr1(_signo, _stack_frame):
+    def handle_sigusr1():
         logger.info('Received SIGUSR1.')
         manager.shutdown()
         sys.exit(0)
 
-    signal.signal(signal.SIGTERM, handle_sigterm)
-    signal.signal(signal.SIGUSR1, handle_sigusr1)
+    gevent.signal(signal.SIGTERM, handle_sigterm)
+    gevent.signal(signal.SIGUSR1, handle_sigusr1)
 
     # Main
     try:
