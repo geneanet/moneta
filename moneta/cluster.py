@@ -50,34 +50,12 @@ class MonetaCluster(object):
         self.zk = KazooClient(zkhosts, handler = handler)
 
         # Watch for connection/disconnection to Zookeeper
-        self.zk.add_listener(self.handle_connection_change)
+        self.zk.add_listener(self._handle_connection_change)
 
         # Watch for config changes
-        self.zk.DataWatch("/moneta/config", self.handle_config_update)
+        self.zk.DataWatch("/moneta/config", self._handle_config_update)
 
         self.zk.start()
-
-    def handle_connection_change(self, state):
-        if state == KazooState.LOST:
-            logger.debug("Zookeeper connection lost")
-
-            self.pools_joined = False
-            self.cluster_joined = False
-            self.contending_for_lead = False
-            self.is_master = False
-
-            if self.scheduler.running:
-                self.scheduler.stop()
-
-        elif state == KazooState.SUSPENDED:
-            logger.debug("Zookeeper connection suspended")
-
-            if self.is_master:
-                self.scheduler.stop()
-
-        else:
-            logger.debug("Zookeeper connection OK")
-            gevent.spawn(self.start)
 
     def start(self):
         self.join_cluster()
@@ -111,7 +89,7 @@ class MonetaCluster(object):
             raise Exception("Another node with the same ID already exists in the cluster.")
 
         # Watch for node changes
-        self.zk.ChildrenWatch("/moneta/nodes", self._nodes_update)
+        self.zk.ChildrenWatch("/moneta/nodes", self._handle_nodes_update)
 
         # Watch for pool changes
         try:
@@ -120,7 +98,7 @@ class MonetaCluster(object):
             pass
         finally:
             self.pools_watchers = {}
-            self.zk.ChildrenWatch("/moneta/pools", self._pools_update)
+            self.zk.ChildrenWatch("/moneta/pools", self._handle_pools_update)
 
         # Set default config if needed
         try:
@@ -139,27 +117,6 @@ class MonetaCluster(object):
         self.cluster_joined = False
 
         logger.debug("Quitted cluster")
-
-    def _pools_update(self, pools):
-        pools_watchers = {}
-
-        for pool in pools:
-            if pool in self.pools_watchers:
-                pools_watchers[pool] = self.pools_watchers[pool]
-            else:
-                logger.debug("Watching pool %s for changes.", pool)
-
-                def pool_update(nodes, pool = pool):
-                    logger.debug("Pool update %s: %s", pool, nodes)
-
-                    if nodes:
-                        self.pools[pool] = nodes
-                    elif pool in self.pools:
-                        del self.pools[pool]
-
-                pools_watchers[pool] = self.zk.ChildrenWatch("/moneta/pools/%s" % pool, pool_update)
-
-        self.pools_watchers = pools_watchers
 
     def join_pools(self):
         if self.pools_joined:
@@ -194,7 +151,7 @@ class MonetaCluster(object):
 
         logger.debug("Contending for lead")
         self.electionticket = self.zk.create('/moneta/election/', self.nodename, ephemeral = True, sequence = True, makepath = True)
-        self.zk.ChildrenWatch("/moneta/election", self._election_update)
+        self.zk.ChildrenWatch("/moneta/election", self._handle_election_update)
         self.contending_for_lead = True
 
     def quit_leader_election(self):
@@ -209,56 +166,18 @@ class MonetaCluster(object):
         self.electionticket = None
         self.contending_for_lead = True
 
-    def _election_update(self, children):
-        children.sort()
-
-        nodes = [self.zk.get("/moneta/election/%s" % child)[0] for child in children]
-
-        oldmaster = self.master
-
-        if nodes:
-            self.master = nodes[0]
-        else:
-            self.master = None
-
-        if oldmaster != self.master:
-            logger.info("Master change : %s", self.master)
-
-        if not self.is_master and self.master == self.nodename:
-            logger.info("I am now the master.")
-            self.is_master = True
-            self.scheduler.run()
-
-    def handle_config_update(self, data, stat):
-        logger.debug("Cluster config update")
-        logger.debug("Cluster config : %s", data)
-        self.config = json.loads(data)
-
-    def _nodes_update(self, children):
-        nodes = {}
-
-        for child in children:
-            try:
-                nodes[child] = json.loads(self.zk.get('/moneta/nodes/%s' % child)[0])
-            except NoNodeError:
-                pass
-
-        self.nodes = nodes
-
-        logger.info("Cluster change : %s", self.nodes)
-
-    def update_last_tick(self, tick):
-        try:
-            self.zk.set('/moneta/last_tick', "%d" % tick)
-        except NoNodeError:
-            self.zk.create('/moneta/last_tick', "%d" % tick, makepath = True)
-
     def get_last_tick(self):
         try:
             (tick, stat) = self.zk.get('/moneta/last_tick')
             return int(tick)
         except NoNodeError:
             return None
+
+    def update_last_tick(self, tick):
+        try:
+            self.zk.set('/moneta/last_tick', "%d" % tick)
+        except NoNodeError:
+            self.zk.create('/moneta/last_tick', "%d" % tick, makepath = True)
 
     def update_config(self):
         self.zk.set('/moneta/config', json.dumps(self.config))
@@ -281,3 +200,84 @@ class MonetaCluster(object):
         index = index.replace('${date}', date)
 
         return (addr, path, index)
+
+    def _handle_connection_change(self, state):
+        if state == KazooState.LOST:
+            logger.debug("Zookeeper connection lost")
+
+            self.pools_joined = False
+            self.cluster_joined = False
+            self.contending_for_lead = False
+            self.is_master = False
+
+            if self.scheduler.running:
+                self.scheduler.stop()
+
+        elif state == KazooState.SUSPENDED:
+            logger.debug("Zookeeper connection suspended")
+
+            if self.is_master:
+                self.scheduler.stop()
+
+        else:
+            logger.debug("Zookeeper connection OK")
+            gevent.spawn(self.start)
+
+    def _handle_election_update(self, children):
+        children.sort()
+
+        nodes = [self.zk.get("/moneta/election/%s" % child)[0] for child in children]
+
+        oldmaster = self.master
+
+        if nodes:
+            self.master = nodes[0]
+        else:
+            self.master = None
+
+        if oldmaster != self.master:
+            logger.info("Master change : %s", self.master)
+
+        if not self.is_master and self.master == self.nodename:
+            logger.info("I am now the master.")
+            self.is_master = True
+            self.scheduler.run()
+
+    def _handle_config_update(self, data, stat):
+        logger.debug("Cluster config update")
+        logger.debug("Cluster config : %s", data)
+        self.config = json.loads(data)
+
+    def _handle_nodes_update(self, children):
+        nodes = {}
+
+        for child in children:
+            try:
+                nodes[child] = json.loads(self.zk.get('/moneta/nodes/%s' % child)[0])
+            except NoNodeError:
+                pass
+
+        self.nodes = nodes
+
+        logger.info("Cluster change : %s", self.nodes)
+
+    def _handle_pools_update(self, pools):
+        pools_watchers = {}
+
+        for pool in pools:
+            if pool in self.pools_watchers:
+                pools_watchers[pool] = self.pools_watchers[pool]
+            else:
+                logger.debug("Watching pool %s for changes.", pool)
+
+                def handle_pool_update(nodes, pool = pool):
+                    logger.debug("Pool update %s: %s", pool, nodes)
+
+                    if nodes:
+                        self.pools[pool] = nodes
+                    elif pool in self.pools:
+                        del self.pools[pool]
+
+                pools_watchers[pool] = self.zk.ChildrenWatch("/moneta/pools/%s" % pool, handle_pool_update)
+
+        self.pools_watchers = pools_watchers
