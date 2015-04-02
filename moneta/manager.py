@@ -32,13 +32,17 @@ class MonetaManager(object):
     def shutdown(self):
         """Disable new executions and wait for all currently running tasks to finish"""
 
+        logger.info("Shutting down manager: disabling task execution on this node")
+
         self.enabled = False
         self.wait_until_finished()
 
     def wait_until_finished(self):
         """Wait for all currently running tasks to finish"""
 
-        greenlets = [ task.greenlet for task in self.running_tasks.itervalues() ]
+        greenlets = [ task['greenlet'] for task in self.running_tasks.itervalues() ]
+
+        logger.debug("Waiting for %d currently running tasks to finish", len(greenlets))
 
         for greenlet in greenlets:
             greenlet.join()
