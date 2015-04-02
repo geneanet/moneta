@@ -53,7 +53,7 @@ def run():
         manager.shutdown(kill = True)
         sys.exit(0)
 
-    def handle_sigusr1():
+    def handle_sigwinch():
         """ Clean exit, waiting for currently running tasks to finish """
         logger.info('Received SIGUSR1.')
         cluster.quit_pools()
@@ -61,7 +61,7 @@ def run():
         sys.exit(0)
 
     gevent.signal(signal.SIGTERM, handle_sigterm)
-    gevent.signal(signal.SIGUSR1, handle_sigusr1)
+    gevent.signal(signal.SIGWINCH, handle_sigwinch)
 
     # Main
     try:
