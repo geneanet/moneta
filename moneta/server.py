@@ -119,8 +119,6 @@ class MonetaServer(HTTPServer):
             'scheduler_running': self.cluster.scheduler.running
         }
 
-        print status
-
         if request.method == "GET":
             return HTTPReply(body = json.dumps(status), headers = headers)
         else:
