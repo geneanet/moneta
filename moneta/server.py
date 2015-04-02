@@ -114,7 +114,7 @@ class MonetaServer(HTTPServer):
             'contending_for_lead': self.cluster.contending_for_lead,
 
             'execution_enabled': self.manager.enabled,
-            'running_tasks': dict([ (execid, { 'task': details['task'], 'started': details['started'].isoformat() }) for (execid, details) in self.manager.running_tasks.iteritems() ]),
+            'running_processes': dict([ (execid, { 'task': details['task'], 'started': details['started'].isoformat() }) for (execid, details) in self.manager.running_processes.iteritems() ]),
 
             'scheduler_running': self.cluster.scheduler.running
         }

@@ -26,7 +26,7 @@ class MonetaManager(object):
 
     def __init__(self, cluster):
         self.cluster = cluster
-        self.running_tasks = {}
+        self.running_processes = {}
         self.enabled = True
 
     def shutdown(self, kill = False):
@@ -44,7 +44,7 @@ class MonetaManager(object):
     def wait_until_finished(self):
         """Wait for all currently running tasks to finish"""
 
-        greenlets = [ task['greenlet'] for task in self.running_tasks.itervalues() ]
+        greenlets = [ process['greenlet'] for process in self.running_processes.itervalues() ]
 
         logger.debug("Waiting for %d currently running tasks to finish", len(greenlets))
 
@@ -54,7 +54,7 @@ class MonetaManager(object):
     def kill_all(self, wait = True):
         """Kill all running tasks"""
 
-        greenlets = [ task['greenlet'] for task in self.running_tasks.itervalues() ]
+        greenlets = [ process['greenlet'] for process in self.running_processes.itervalues() ]
 
         logger.debug("Killing %d currently running tasks", len(greenlets))
 
@@ -72,11 +72,11 @@ class MonetaManager(object):
         greenlet = Greenlet(self._execute_task, task)
 
         def handle_task_completion(greenlet, execid = execid):
-            del self.running_tasks[execid]
+            del self.running_processes[execid]
 
         greenlet.link(handle_task_completion)
 
-        self.running_tasks[execid] = {
+        self.running_processes[execid] = {
             "task": task,
             "started": datetime.utcnow().replace(tzinfo = pytz.utc),
             "greenlet": greenlet
