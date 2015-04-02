@@ -53,6 +53,7 @@ def run():
 
     def handle_sigusr1():
         logger.info('Received SIGUSR1.')
+        cluster.quit_pools()
         manager.shutdown()
         sys.exit(0)
 
