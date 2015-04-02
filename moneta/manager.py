@@ -9,10 +9,11 @@ from pwd import getpwnam
 from grp import getgrnam
 from os import setgid, setuid, setgroups, chdir, environ
 import json
+import uuid
 
 from gevent.subprocess import Popen
 from subprocess import PIPE
-from gevent import spawn
+from gevent import Greenlet
 
 from moneta.http.client import HTTPClient
 from moneta.http.http import HTTPRequest, parse_host_port
@@ -24,11 +25,27 @@ class MonetaManager(object):
 
     def __init__(self, cluster):
         self.cluster = cluster
-        self.running_tasks = []
+        self.running_tasks = {}
 
     def execute_task(self, task):
         """Spawn a greenlet to execute a task"""
-        spawn(self._execute_task, task)
+
+        execid = uuid.uuid1().hex
+
+        greenlet = Greenlet(self._execute_task, task)
+
+        def handle_task_completion(greenlet, execid = execid):
+            del self.running_tasks[execid]
+
+        greenlet.link(handle_task_completion)
+
+        self.running_tasks[execid] = {
+            "task": task,
+            "started": datetime.utcnow().replace(tzinfo = pytz.utc),
+            "greenlet": greenlet
+        }
+
+        greenlet.start()
 
     def _execute_task(self, task):
         """Execute a task and send the results to the master"""
