@@ -9,6 +9,7 @@ import sys
 import signal
 
 from moneta.cluster import MonetaCluster
+from moneta.manager import MonetaManager
 from moneta.server import MonetaServer
 
 logger = logging.getLogger('moneta')
@@ -55,7 +56,8 @@ def run():
     try:
         logger.debug('Starting')
         cluster = MonetaCluster(args.nodename, args.listen, args.zookeeper, pools = args.pools)
-        server = MonetaServer(cluster, args.listen)
+        manager = MonetaManager(cluster)
+        server = MonetaServer(cluster, manager, args.listen)
         logger.info('Started')
 
         server.run_forever()
