@@ -107,7 +107,7 @@ class MonetaServer(HTTPServer):
         status  = {
             'name': self.cluster.nodename,
             'address': self.cluster.addr,
-            'pools': self.cluster.pools,
+            'pools': self.cluster.mypools,
             'master': self.cluster.is_master,
             'cluster_joined': self.cluster.cluster_joined,
             'pools_joined': self.cluster.pools_joined,
