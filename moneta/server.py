@@ -48,6 +48,7 @@ class MonetaServer(HTTPServer):
         self.routes['/cluster/pools'] = self.handle_cluster_pools
         self.routes['/cluster/status'] = self.handle_cluster_status
         self.routes['/cluster/config/.+'] = self.handle_cluster_config
+        self.routes['/status'] = self.handle_status
         self.routes['/tasks/[0-9a-z]+/report'] = self.handle_task_report
         self.routes['/tasks/[0-9a-z]+/(en|dis)able'] = self.handle_task_enable
         self.routes['/tasks/[0-9a-z]+'] = self.handle_task
@@ -92,6 +93,33 @@ class MonetaServer(HTTPServer):
             'nodes': self.cluster.nodes,
             'master': self.cluster.master
         }
+
+        if request.method == "GET":
+            return HTTPReply(body = json.dumps(status), headers = headers)
+        else:
+            return HTTPReply(code = 405)
+
+    def handle_status(self, request):
+        """Handle requests to /status"""
+
+        headers = { 'Content-Type': 'application/javascript' }
+
+        status  = {
+            'name': self.cluster.nodename,
+            'address': self.cluster.addr,
+            'pools': self.cluster.pools,
+            'master': self.cluster.is_master,
+            'cluster_joined': self.cluster.cluster_joined,
+            'pools_joined': self.cluster.pools_joined,
+            'contending_for_lead': self.cluster.contending_for_lead,
+
+            'execution_enabled': self.manager.enabled,
+            'running_tasks': dict([ (execid, { 'task': details['task'], 'started': details['started'].isoformat() }) for (execid, details) in self.manager.running_tasks.iteritems() ]),
+
+            'scheduler_running': self.cluster.scheduler.running
+        }
+
+        print status
 
         if request.method == "GET":
             return HTTPReply(body = json.dumps(status), headers = headers)
