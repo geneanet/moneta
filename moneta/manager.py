@@ -17,6 +17,7 @@ from gevent import Greenlet
 
 from moneta.http.client import HTTPClient
 from moneta.http.http import HTTPRequest, parse_host_port
+from moneta.exceptions import ExecutionDisabled
 
 logger = logging.getLogger('moneta.manager')
 
@@ -26,9 +27,27 @@ class MonetaManager(object):
     def __init__(self, cluster):
         self.cluster = cluster
         self.running_tasks = {}
+        self.enabled = True
+
+    def shutdown(self):
+        """Disable new executions and wait for all currently running tasks to finish"""
+
+        self.enabled = False
+        self.wait_until_finished()
+
+    def wait_until_finished(self):
+        """Wait for all currently running tasks to finish"""
+
+        greenlets = [ task.greenlet for task in self.running_tasks.itervalues() ]
+
+        for greenlet in greenlets:
+            greenlet.join()
 
     def execute_task(self, task):
         """Spawn a greenlet to execute a task"""
+
+        if not self.enabled:
+            raise ExecutionDisabled()
 
         execid = uuid.uuid1().hex
 
