@@ -7,13 +7,6 @@ from collections import OrderedDict
 import re
 import uuid
 
-from gevent.subprocess import Popen
-from subprocess import PIPE
-from gevent import spawn
-
-from pwd import getpwnam
-from grp import getgrnam
-from os import setgid, setuid, setgroups, chdir, environ
 from datetime import datetime
 
 import traceback
@@ -25,7 +18,6 @@ from textwrap import dedent
 import pytz
 
 import logging
-import urllib
 
 from moneta.http.client import HTTPClient
 from moneta.http.server import HTTPServer
