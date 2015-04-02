@@ -22,6 +22,7 @@ import logging
 from moneta.http.client import HTTPClient
 from moneta.http.server import HTTPServer
 from moneta.http.http import HTTPReply, HTTPRequest, parse_host_port
+from moneta.exceptions import ExecutionDisabled
 
 logger = logging.getLogger('moneta.server')
 
@@ -220,8 +221,11 @@ class MonetaServer(HTTPServer):
                 return HTTPReply(code = 404)
 
         if request.method == "EXECUTE":
-            self.manager.execute_task(task)
-            return HTTPReply(code = 200, body = json.dumps({"id": task, "executed": True}))
+            try:
+                self.manager.execute_task(task)
+                return HTTPReply(code = 200, body = json.dumps({"id": task, "executed": True}))
+            except ExecutionDisabled:
+                return HTTPReply(code = 503, body = json.dumps({"id": task, "executed": False}))
 
         else:
             return HTTPReply(code = 405)
