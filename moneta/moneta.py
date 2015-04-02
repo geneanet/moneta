@@ -48,10 +48,12 @@ def run():
 
     # Signals
     def handle_sigterm():
+        """ Dirty exit, currently running tasks will not be collected and reports will not be sent """
         logger.info('Received SIGTERM.')
         sys.exit(0)
 
     def handle_sigusr1():
+        """ Clean exit, waiting for currently running tasks to finish """
         logger.info('Received SIGUSR1.')
         cluster.quit_pools()
         manager.shutdown()
