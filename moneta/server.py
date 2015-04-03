@@ -48,6 +48,7 @@ class MonetaServer(HTTPServer):
         self.routes['/cluster/pools'] = self.handle_cluster_pools
         self.routes['/cluster/status'] = self.handle_cluster_status
         self.routes['/cluster/config/.+'] = self.handle_cluster_config
+        self.routes['/node/[^/]+/.+'] = self.handle_node
         self.routes['/status'] = self.handle_status
         self.routes['/tasks/[0-9a-z]+/report'] = self.handle_task_report
         self.routes['/tasks/[0-9a-z]+/(en|dis)able'] = self.handle_task_enable
@@ -98,6 +99,21 @@ class MonetaServer(HTTPServer):
             return HTTPReply(body = json.dumps(status), headers = headers)
         else:
             return HTTPReply(code = 405)
+
+    def handle_node(self, request):
+        """Handle requests to /node/[^/]+/.+"""
+
+        match = re.match('/node/([^/]+)(/.+)', request.uri_path)
+        node = match.group(1)
+        uri = match.group(2)
+
+        if node not in self.cluster.nodes:
+            return HTTPReply(code = 404, headers = { 'Content-Type': 'application/javascript' }, body = '{ "message": "Node not found" }')
+
+        addr = parse_host_port(self.cluster.nodes[node]["address"])
+
+        client = HTTPClient(addr)
+        return client.request(HTTPRequest(uri = uri, method = request.method, body = request.body))
 
     def handle_status(self, request):
         """Handle requests to /status"""
