@@ -83,7 +83,7 @@ class MonetaCluster(object):
         try:
             self.zk.create('/moneta/nodes/%s' % self.nodename, json.dumps({ "address": self.addr, "pools": self.mypools}), ephemeral = True, makepath = True)
             self.cluster_joined = True
-            logger.debug("Joined cluster")
+            logger.info("Joined cluster")
         except NodeExistsError:
             self.cluster_joined = False
             raise Exception("Another node with the same ID already exists in the cluster.")
@@ -103,7 +103,7 @@ class MonetaCluster(object):
         # Set default config if needed
         try:
             self.zk.create('/moneta/config', json.dumps(self.config), makepath = True)
-            logger.debug("No cluster config found, default valuess have been set.")
+            logger.info("No cluster config found, default valuess have been set.")
         except NodeExistsError:
             pass
 
@@ -116,7 +116,7 @@ class MonetaCluster(object):
         self.zk.delete('/moneta/nodes/%s' % self.nodename)
         self.cluster_joined = False
 
-        logger.debug("Quitted cluster")
+        logger.info("Quitted cluster")
 
     def join_pools(self):
         if self.pools_joined:
@@ -127,6 +127,7 @@ class MonetaCluster(object):
                 try:
                     logger.debug("Joining pool %s", pool)
                     self.zk.create('/moneta/pools/%s/%s' % (pool, self.nodename), self.addr, ephemeral = True, makepath = True)
+                    logger.info("Joined pool %s", pool)
                 except NodeExistsError:
                     raise Exception("Unable to join pool %s." % pool)
             self.pools_joined = True
@@ -142,6 +143,7 @@ class MonetaCluster(object):
         for pool in self.mypools:
             logger.debug("Quitting pool %s", pool)
             self.zk.delete('/moneta/pools/%s/%s' % (pool, self.nodename))
+            logger.info("Quitted pool %s", pool)
 
         self.pools_joined = False
 
@@ -149,7 +151,7 @@ class MonetaCluster(object):
         if self.contending_for_lead:
             return
 
-        logger.debug("Contending for lead")
+        logger.info("Contending for lead")
         self.electionticket = self.zk.create('/moneta/election/', self.nodename, ephemeral = True, sequence = True, makepath = True)
         self.zk.ChildrenWatch("/moneta/election", self._handle_election_update)
         self.contending_for_lead = True
@@ -158,10 +160,10 @@ class MonetaCluster(object):
         if not self.contending_for_lead:
             return
 
-        if self.is_master:
+        if self.scheduler.running:
             self.scheduler.stop()
 
-        logger.debug("Abandonning participation in leader election")
+        logger.info("Abandonning participation in leader election")
         self.zk.delete(self.electionticket)
         self.electionticket = None
         self.contending_for_lead = True
@@ -203,7 +205,7 @@ class MonetaCluster(object):
 
     def _handle_connection_change(self, state):
         if state == KazooState.LOST:
-            logger.debug("Zookeeper connection lost")
+            logger.error("Zookeeper connection lost")
 
             self.pools_joined = False
             self.cluster_joined = False
@@ -214,13 +216,13 @@ class MonetaCluster(object):
                 self.scheduler.stop()
 
         elif state == KazooState.SUSPENDED:
-            logger.debug("Zookeeper connection suspended")
+            logger.warning("Zookeeper connection suspended")
 
-            if self.is_master:
+            if self.scheduler.running:
                 self.scheduler.stop()
 
         else:
-            logger.debug("Zookeeper connection OK")
+            logger.info("Zookeeper connection OK")
             gevent.spawn(self.start)
 
     def _handle_election_update(self, children):

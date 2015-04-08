@@ -28,7 +28,7 @@ class MonetaScheduler(object):
         if self.running:
             return
 
-        logger.debug("Starting scheduler.")
+        logger.info("Starting scheduler.")
         self.greenlet = gevent.spawn(self.ticker)
         self.running = True
 
@@ -37,7 +37,7 @@ class MonetaScheduler(object):
         if not self.running:
             return
 
-        logger.debug("Stopping scheduler.")
+        logger.info("Stopping scheduler.")
         self.greenlet.kill()
         self.running = False
 
