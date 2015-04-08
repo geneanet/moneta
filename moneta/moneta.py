@@ -73,10 +73,15 @@ def run():
 
         server.run_forever()
 
-    except (SystemExit, KeyboardInterrupt):
+    except SystemExit, e:
         logger.info('Termination requested.')
         cluster.stop()
-        sys.exit(0)
+        sys.exit(e)
+
+    except KeyboardInterrupt:
+        logger.info('Termination requested by keyboard interrupt.')
+        cluster.stop()
+        sys.exit(1)
 
     except BaseException:
         logger.exception('An exception occurred. Terminating moneta.')
