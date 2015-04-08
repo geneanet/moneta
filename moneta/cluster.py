@@ -58,20 +58,29 @@ class MonetaCluster(object):
         self.zk.start()
 
     def start(self):
-        self.join_cluster()
-        self.join_pools()
-        self.join_leader_election()
+        try:
+            self.join_cluster()
+            self.join_pools()
+            self.join_leader_election()
 
-        if self.is_master:
-            self.scheduler.run()
+            if self.is_master:
+                self.scheduler.run()
+        except Exception:
+            logger.exception("Exception encountered while starting cluster")
+            exit(1)
+
 
     def stop(self):
-        if self.is_master:
-            self.scheduler.stop()
+        try:
+            if self.is_master:
+                self.scheduler.stop()
 
-        self.quit_leader_election()
-        self.quit_pools()
-        self.quit_cluster()
+            self.quit_leader_election()
+            self.quit_pools()
+            self.quit_cluster()
+        except Exception:
+            logger.exception("Exception encountered while stopping cluster cluster")
+            exit(1)
 
     def join_cluster(self):
         if self.cluster_joined:
