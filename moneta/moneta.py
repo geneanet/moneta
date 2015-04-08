@@ -76,14 +76,17 @@ def run():
     except SystemExit, e:
         logger.info('Termination requested.')
         cluster.stop()
+        logger.info('Terminated.')
         sys.exit(e)
 
     except KeyboardInterrupt:
         logger.info('Termination requested by keyboard interrupt.')
         cluster.stop()
+        logger.info('Terminated.')
         sys.exit(1)
 
     except BaseException:
         logger.exception('An exception occurred. Terminating moneta.')
         cluster.stop()
+        logger.info('Terminated.')
         sys.exit(1)
