@@ -11,10 +11,6 @@ from datetime import datetime
 
 import traceback
 
-from email.mime.text import MIMEText
-import smtplib
-
-from textwrap import dedent
 import pytz
 
 import logging
@@ -23,6 +19,7 @@ from moneta.http.client import HTTPClient
 from moneta.http.server import HTTPServer
 from moneta.http.http import HTTPReply, HTTPRequest, parse_host_port
 from moneta.exceptions import ExecutionDisabled
+from moneta.pluginregistry import get_plugin_registry
 
 logger = logging.getLogger('moneta.server')
 
@@ -309,17 +306,9 @@ class MonetaServer(HTTPServer):
             logger.info("Received execution report for task %s", task)
             logger.debug("Execution report for task %s: %s", task, repr(report))
 
+            get_plugin_registry().call_hook('ReceivedReport', report)
+
             taskconfig = self.cluster.config['tasks'][task]
-
-            report['task_name'] = taskconfig['name']
-            if 'tags' in taskconfig:
-                report['task_tags'] = taskconfig['tags']
-
-            if 'mailreport' in taskconfig and ((taskconfig['mailreport'] == 'error' and report['status'] != 'ok') or taskconfig['mailreport'] == 'always'):
-                self.mail_report(task, report)
-
-            if self.cluster.config['elasticsearch_url']:
-                self.log_elasticsearch('moneta-task-report', report)
 
             taskconfig['last_report'] = {
                 'status': report['status'],
@@ -333,91 +322,4 @@ class MonetaServer(HTTPServer):
 
         else:
             return HTTPReply(code = 405)
-
-    def log_elasticsearch(self, documenttype, data):
-        data = data.copy()
-
-        data['@timestamp'] = datetime.utcnow().replace(tzinfo = pytz.utc).isoformat()
-
-        (addr, path, index) = self.cluster.get_elasticsearch_config()
-
-        try:
-            client = HTTPClient(addr)
-            ret = client.request(HTTPRequest(uri = "%s%s/%s" % (path, index, documenttype), method = 'POST', body = json.dumps(data)))
-
-            if ret.code > 400:
-                raise Exception("Unable to log in ElasticSearch: Response code %d (%s)" % (ret.code, ret.body))
-
-        except Exception:
-            raise Exception("Unable to log in ElasticSearch")
-
-    def mail_report(self, task, report):
-        """Send a report by email"""
-
-        taskconfig = self.cluster.config['tasks'][task]
-
-        if not self.cluster.config['smtpserver']:
-            raise Exception("An email report should be delivered for task %s, but no smtp server has been configured.")
-
-        if not self.cluster.config['email']:
-            raise Exception("An email report should be delivered for task %s, but no sender email has been configured.")
-
-        if not 'mailto' in taskconfig or not taskconfig['mailto']:
-            raise Exception("An email report should be delivered for task %s, but the task has no mailto parameter or mailto is empty.")
-
-        # Template
-
-        msgbody = dedent(
-            u"""\
-            Task: {task[name]}
-            -------------------------------------------------------------------------------
-            Status: {report[status]}
-            Executed on node: {report[node]}
-            Started: {report[start_time]}
-            Ended: {report[end_time]}
-            Duration: {report[duration]} seconds
-            -------------------------------------------------------------------------------
-            """)
-
-        if report['status'] == "fail":
-            msgbody += "Error: {report[error]}\n"
-        else:
-            msgbody += "Return code: {report[returncode]}\n"
-
-            if report['stdout']:
-                msgbody += dedent(
-                    """\
-
-                    stdout :
-                    -------------------------------------------------------------------------------
-                    {report[stdout]}
-                    -------------------------------------------------------------------------------
-                    """)
-
-            if report['stderr']:
-                msgbody += dedent(
-                    """\
-
-                    stderr :
-                    -------------------------------------------------------------------------------
-                    {report[stderr]}
-                    -------------------------------------------------------------------------------
-                    """)
-
-        # Message
-
-        msg = MIMEText(msgbody.format(task = taskconfig, report = report), "plain", "utf-8")
-
-        mailto = taskconfig['mailto']
-        if isinstance(mailto, str) or isinstance(mailto, unicode):
-            mailto = [ mailto ]
-
-        msg['Subject'] = u"Moneta Execution Report - Task %s" % taskconfig['name']
-        msg['From'] = self.cluster.config['email']
-        msg['To'] = ",".join(mailto)
-
-        # Send
-
-        s = smtplib.SMTP(self.cluster.config['smtpserver'])
-        s.sendmail(self.cluster.config['email'], mailto, msg.as_string())
-        s.quit()
+            
