@@ -55,7 +55,11 @@ class MonetaCluster(object):
         # Watch for config changes
         self.zk.DataWatch("/moneta/config", self._handle_config_update)
 
+    def connect(self):
         self.zk.start()
+
+    def disconnect(self):
+        self.zk.stop()
 
     def start(self):
         try:

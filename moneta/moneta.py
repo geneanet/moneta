@@ -82,6 +82,8 @@ def run():
         for plugin in args.loadplugin:
             registry.register_plugin(plugin)
 
+        cluster.connect()
+
         logger.info('Started')
 
         server.run_forever()
