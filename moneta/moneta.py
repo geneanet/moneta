@@ -12,9 +12,10 @@ import gevent
 from moneta.cluster import MonetaCluster
 from moneta.manager import MonetaManager
 from moneta.server import MonetaServer
-from moneta.pluginregistry import PluginRegistry
+from moneta.pluginregistry import get_plugin_registry
 
 logger = logging.getLogger('moneta')
+registry = get_plugin_registry()
 
 def run():
     parser = argparse.ArgumentParser()
@@ -73,11 +74,11 @@ def run():
         manager = MonetaManager(cluster)
         server = MonetaServer(cluster, manager, args.listen)
 
-        registry = PluginRegistry(args.plugindir, modules = {
-            'Cluster': cluster,
-            'Manager': manager,
-            'server': server
-            })
+        registry.add_module('Cluster', cluster)
+        registry.add_module('Manager', manager)
+        registry.add_module('Server', server)
+
+        registry.set_plugin_dir(args.plugindir)
 
         for plugin in args.loadplugin:
             registry.register_plugin(plugin)

@@ -50,3 +50,16 @@ class PluginRegistry(object):
         if hook in self.hooks:
             for function in self.hooks[hook]:
                 function(*args, **kwargs)
+
+    def set_plugin_dir(self, plugindir):
+        self.plugindir = plugindir
+
+    def add_module(self, name, obj):
+        self.modules[name] = obj
+
+
+pluginregistry = PluginRegistry()
+
+def get_plugin_registry():
+    return pluginregistry
+
