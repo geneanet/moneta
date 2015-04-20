@@ -42,7 +42,7 @@ class PluginRegistry(object):
 
     def register_hook(self, hook, function):
         if hook in self.hooks:
-            self.hooks[hook].append(hook)
+            self.hooks[hook].append(function)
         else:
             self.hooks[hook] = [ function ]
 
