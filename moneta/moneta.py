@@ -12,6 +12,7 @@ import gevent
 from moneta.cluster import MonetaCluster
 from moneta.manager import MonetaManager
 from moneta.server import MonetaServer
+from moneta.pluginregistry import PluginRegistry
 
 logger = logging.getLogger('moneta')
 
@@ -24,6 +25,8 @@ def run():
     parser.add_argument('--logfile', nargs='?', default=None, help='Log file')
     parser.add_argument('--loglevel', nargs='?', default="info", help='Log level', choices = ['debug', 'info', 'warning', 'error', 'critical', 'fatal'])
     parser.add_argument('--logconfig', nargs='?', default=None, help='Logging configuration file (overrides --loglevel and --logfile)')
+    parser.add_argument('--plugindir', nargs='?', default='plugins', help='Plugins directory')
+    parser.add_argument('--loadplugin', nargs='+', default=[], help='Load plugin(s)')
     args = parser.parse_args()
 
     # Logging
@@ -69,6 +72,16 @@ def run():
         cluster = MonetaCluster(args.nodename, args.listen, args.zookeeper, pools = args.pools)
         manager = MonetaManager(cluster)
         server = MonetaServer(cluster, manager, args.listen)
+
+        registry = PluginRegistry(args.plugindir, modules = {
+            'Cluster': cluster,
+            'Manager': manager,
+            'server': server
+            })
+
+        for plugin in args.loadplugin:
+            registry.register_plugin(plugin)
+
         logger.info('Started')
 
         server.run_forever()
