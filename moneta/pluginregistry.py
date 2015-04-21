@@ -36,7 +36,7 @@ class PluginRegistry(object):
 
             self.plugins[plugin_name] = module.init(*dependencies)
         except Exception, e:
-            logger.error('Failed to load plugin %s (%s)', plugin_name, str(e))
+            raise Exception('Failed to load plugin %s (%s)' % (plugin_name, str(e)))
         else:
             logger.info('Loaded plugin %s', plugin_name)
 
