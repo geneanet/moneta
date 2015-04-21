@@ -72,7 +72,7 @@ def run():
     if args.config:
         try:
             with open(args.config, 'r') as f:
-                local_config = yaml.load(f.read())
+                local_config = yaml.safe_load(f.read())
         except Exception, e:
             raise Exception("Cant read config file %s (%s)", args.config, str(e))
     else:
