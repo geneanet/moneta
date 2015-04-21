@@ -21,6 +21,7 @@ class PluginRegistry(object):
         self.modules['PluginRegistry'] = self
 
         self.hooks = {}
+        self.filters = {}
 
     def register_plugin(self, plugin_name, config = None):
         if config == None:
@@ -49,10 +50,25 @@ class PluginRegistry(object):
         else:
             self.hooks[hook] = [ function ]
 
+    def register_filter(self, filter, function):
+        if filter in self.filters:
+            self.filters[filter].append(function)
+        else:
+            self.filters[filter] = [ function ]
+
     def call_hook(self, hook, *args, **kwargs):
         if hook in self.hooks:
             for function in self.hooks[hook]:
                 function(*args, **kwargs)
+
+    def call_filter(self, filter, arg, context = None):
+        arg = arg.copy()
+
+        if filter in self.filters:
+            for function in self.filters[filter]:
+                arg = function(arg, context)
+
+        return arg
 
     def set_plugin_dir(self, plugindir):
         self.plugindir = plugindir
