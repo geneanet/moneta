@@ -16,7 +16,6 @@ from moneta.server import MonetaServer
 from moneta.pluginregistry import get_plugin_registry
 
 logger = logging.getLogger('moneta')
-registry = get_plugin_registry()
 
 def run():
     parser = argparse.ArgumentParser()
@@ -122,9 +121,14 @@ def run():
     # Main
     try:
         logger.debug('Starting')
+
+        # Instanciate Cluster, Manager and Server
         cluster = MonetaCluster(local_config['nodename'], local_config['listen'], local_config['zookeeper'], pools = local_config['pools'])
         manager = MonetaManager(cluster)
         server = MonetaServer(cluster, manager, local_config['listen'])
+
+        # Load Plugins
+        registry = get_plugin_registry()
 
         registry.add_module('Cluster', cluster)
         registry.add_module('Manager', manager)
@@ -138,10 +142,12 @@ def run():
             else:
                 registry.register_plugin(plugin)
 
+        # Connect to the Cluster
         cluster.connect()
 
         logger.info('Started')
 
+        # Start the Server
         server.run_forever()
 
     except SystemExit, e:
