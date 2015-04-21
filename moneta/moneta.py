@@ -20,7 +20,7 @@ logger = logging.getLogger('moneta')
 def run():
     parser = argparse.ArgumentParser()
     parser.add_argument('--listen', nargs='?', default=None, help='Listen host:port')
-    parser.add_argument('--zookeeper', nargs='?', default=None, help='Zookeeper hosts (comma-separated list of host:port items)')
+    parser.add_argument('--zookeeper', nargs='+', default=None, help='Zookeeper hosts (list of host:port items)')
     parser.add_argument('--nodename', nargs='?', default=None, help='Node name')
     parser.add_argument('--pools', nargs='?', default=None, help='Comma separated list of pools')
     parser.add_argument('--logfile', nargs='?', default=None, help='Log file')
@@ -102,7 +102,7 @@ def run():
         local_config['listen'] = "127.0.0.1:32000"
 
     if not 'zookeeper' in local_config or not local_config['zookeeper']:
-        local_config['zookeeper'] = "127.0.0.1:2181"
+        local_config['zookeeper'] = ["127.0.0.1:2181"]
 
     if not 'nodename' in local_config or not local_config['nodename']:
         local_config['nodename'] = uuid.uuid1().hex
@@ -123,7 +123,7 @@ def run():
         logger.debug('Starting')
 
         # Instanciate Cluster, Manager and Server
-        cluster = MonetaCluster(local_config['nodename'], local_config['listen'], local_config['zookeeper'], pools = local_config['pools'])
+        cluster = MonetaCluster(local_config['nodename'], local_config['listen'], ','.join(local_config['zookeeper']), pools = local_config['pools'])
         manager = MonetaManager(cluster)
         server = MonetaServer(cluster, manager, local_config['listen'])
 
