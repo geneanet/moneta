@@ -4,6 +4,7 @@ plugins:
         - mailer
         - elasticsearch
         - configbackup
+        - executionsummary
     config:
         configbackup:
             path: config-backup.yaml
