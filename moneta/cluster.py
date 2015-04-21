@@ -184,15 +184,15 @@ class MonetaCluster(object):
     def get_last_tick(self):
         try:
             (tick, stat) = self.zk.get('/moneta/last_tick')
-            return int(tick)
+            return float(tick)
         except NoNodeError:
             return None
 
     def update_last_tick(self, tick):
         try:
-            self.zk.set('/moneta/last_tick', "%d" % tick)
+            self.zk.set('/moneta/last_tick', "%f" % tick)
         except NoNodeError:
-            self.zk.create('/moneta/last_tick', "%d" % tick, makepath = True)
+            self.zk.create('/moneta/last_tick', "%f" % tick, makepath = True)
 
     def update_config(self):
         self.zk.set('/moneta/config', json.dumps(self.config))
