@@ -14,6 +14,7 @@ import logging
 import gevent
 
 from moneta.scheduler import MonetaScheduler
+from moneta.pluginregistry import get_plugin_registry
 
 logger = logging.getLogger('moneta.cluster')
 
@@ -262,6 +263,7 @@ class MonetaCluster(object):
         logger.debug("Cluster config update")
         logger.debug("Cluster config : %s", data)
         self.config = json.loads(data)
+        get_plugin_registry().call_hook('ConfigUpdated', self.config)
 
     def _handle_nodes_update(self, children):
         nodes = {}
