@@ -52,6 +52,7 @@ class MonetaServer(HTTPServer):
         self.routes['/tasks/[0-9a-z]+'] = self.handle_task
         self.routes['/tasks'] = self.handle_tasks
         self.routes['/tags'] = self.handle_tags
+        self.routes['/plugins'] = self.handle_plugins
 
     def handle_request(self, socket, address, request):
         """Handle a request, finding the right route"""
@@ -195,6 +196,17 @@ class MonetaServer(HTTPServer):
         else:
             return HTTPReply(code = 405)
 
+    def handle_plugins(self, request):
+        """Handle requests to /plugins"""
+
+        headers = { 'Content-Type': 'application/javascript' }
+
+        if request.method == "GET":
+            plugins = get_plugin_registry().get_plugins()
+            return HTTPReply(code = 200, body = json.dumps(plugins), headers = headers)
+
+        else:
+            return HTTPReply(code = 405)
 
     def handle_tasks(self, request):
         """Handle requests to /tasks"""

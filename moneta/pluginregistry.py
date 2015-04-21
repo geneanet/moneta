@@ -76,6 +76,9 @@ class PluginRegistry(object):
     def add_module(self, name, obj):
         self.modules[name] = obj
 
+    def get_plugins(self):
+        return self.plugins.keys()
+
 
 pluginregistry = PluginRegistry()
 
