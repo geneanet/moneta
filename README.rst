@@ -23,5 +23,6 @@ An AngularJS/Foundation app is available to offer a nice GUI.
 Dependencies:
 -------------
 - gevent
-- kazoo
+- Kazoo
 - pytz
+- PyYAML

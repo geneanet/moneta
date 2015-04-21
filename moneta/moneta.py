@@ -8,6 +8,7 @@ import logging, logging.config
 import sys
 import signal
 import gevent
+import yaml
 
 from moneta.cluster import MonetaCluster
 from moneta.manager import MonetaManager
@@ -19,15 +20,16 @@ registry = get_plugin_registry()
 
 def run():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--listen', nargs='?', default='127.0.0.1:32000', help='Listen host:port')
-    parser.add_argument('--zookeeper', nargs='?', default='127.0.0.1:2181', help='Zookeeper hosts (comma-separated list of host:port items)')
-    parser.add_argument('--nodename', nargs='?', default=uuid.uuid1().hex, help='Node name')
-    parser.add_argument('--pools', nargs='?', type=lambda s: s.split(','), default="default", help='Comma separated list of pools')
+    parser.add_argument('--listen', nargs='?', default=None, help='Listen host:port')
+    parser.add_argument('--zookeeper', nargs='?', default=None, help='Zookeeper hosts (comma-separated list of host:port items)')
+    parser.add_argument('--nodename', nargs='?', default=None, help='Node name')
+    parser.add_argument('--pools', nargs='?', default=None, help='Comma separated list of pools')
     parser.add_argument('--logfile', nargs='?', default=None, help='Log file')
     parser.add_argument('--loglevel', nargs='?', default="info", help='Log level', choices = ['debug', 'info', 'warning', 'error', 'critical', 'fatal'])
     parser.add_argument('--logconfig', nargs='?', default=None, help='Logging configuration file (overrides --loglevel and --logfile)')
-    parser.add_argument('--plugindir', nargs='?', default='plugins', help='Plugins directory')
-    parser.add_argument('--loadplugin', nargs='+', default=[], help='Load plugin(s)')
+    parser.add_argument('--plugindir', nargs='?', default=None, help='Plugins directory')
+    parser.add_argument('--plugins', nargs='+', default=None, help='Load plugin(s)')
+    parser.add_argument('--config', nargs='?', default=None, help='Config file')
     args = parser.parse_args()
 
     # Logging
@@ -67,20 +69,70 @@ def run():
     gevent.signal(signal.SIGTERM, handle_sigterm)
     gevent.signal(signal.SIGWINCH, handle_sigwinch)
 
+    # Local config
+    if args.config:
+        try:
+            with open(args.config, 'r') as f:
+                local_config = yaml.load(f.read())
+        except Exception, e:
+            raise Exception("Cant read config file %s (%s)", args.config, str(e))
+    else:
+        local_config = {}
+
+    # Command line args override
+    if args.listen:
+        local_config['listen'] = args.listen
+
+    if args.zookeeper:
+        local_config['zookeeper'] = args.zookeeper
+
+    if args.nodename:
+        local_config['nodename'] = args.nodename
+
+    if args.pools:
+        local_config['pools'] = args.pools.split(',')
+
+    if args.plugindir:
+        local_config['plugindir'] = args.plugindir
+
+    if args.plugins:
+        local_config['plugins'] = { 'load': args.plugins, 'config': {} }
+
+    # Default values
+    if not 'listen' in local_config or not local_config['listen']:
+        local_config['listen'] = "127.0.0.1:32000"
+
+    if not 'zookeeper' in local_config or not local_config['zookeeper']:
+        local_config['zookeeper'] = "127.0.0.1:2181"
+
+    if not 'nodename' in local_config or not local_config['nodename']:
+        local_config['nodename'] = uuid.uuid1().hex
+
+    if not 'pools' in local_config or not local_config['pools']:
+        local_config['pools'] = ['default']
+
+    if not 'plugindir' in local_config or not local_config['plugindir']:
+        local_config['plugindir'] = "plugins"
+
+    if not 'plugins' in local_config or not local_config['plugins']:
+        local_config['plugins'] = { 'load': [], 'config': {} }
+
+    logger.debug('Local config: %s', local_config)
+
     # Main
     try:
         logger.debug('Starting')
-        cluster = MonetaCluster(args.nodename, args.listen, args.zookeeper, pools = args.pools)
+        cluster = MonetaCluster(local_config['nodename'], local_config['listen'], local_config['zookeeper'], pools = local_config['pools'])
         manager = MonetaManager(cluster)
-        server = MonetaServer(cluster, manager, args.listen)
+        server = MonetaServer(cluster, manager, local_config['listen'])
 
         registry.add_module('Cluster', cluster)
         registry.add_module('Manager', manager)
         registry.add_module('Server', server)
 
-        registry.set_plugin_dir(args.plugindir)
+        registry.set_plugin_dir(local_config['plugindir'])
 
-        for plugin in args.loadplugin:
+        for plugin in local_config['plugins']['load']:
             registry.register_plugin(plugin)
 
         cluster.connect()
