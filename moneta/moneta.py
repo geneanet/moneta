@@ -133,7 +133,10 @@ def run():
         registry.set_plugin_dir(local_config['plugindir'])
 
         for plugin in local_config['plugins']['load']:
-            registry.register_plugin(plugin)
+            if 'config' in local_config['plugins'] and plugin in local_config['plugins']['config']:
+                registry.register_plugin(plugin, local_config['plugins']['config'][plugin])
+            else:
+                registry.register_plugin(plugin)
 
         cluster.connect()
 

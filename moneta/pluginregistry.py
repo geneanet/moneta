@@ -22,7 +22,10 @@ class PluginRegistry(object):
 
         self.hooks = {}
 
-    def register_plugin(self, plugin_name):
+    def register_plugin(self, plugin_name, config = None):
+        if config == None:
+            config = {}
+
         try:
             (filehandle, filepath, description) = find_module(plugin_name, [ self.plugindir ])
             module = load_module(plugin_name, filehandle, filepath, description)
@@ -34,7 +37,7 @@ class PluginRegistry(object):
                 else:
                     raise Exception("Required dependency %s not found." % dependency)
 
-            self.plugins[plugin_name] = module.init(*dependencies)
+            self.plugins[plugin_name] = module.init(config, *dependencies)
         except Exception, e:
             raise Exception('Failed to load plugin %s (%s)' % (plugin_name, str(e)))
         else:

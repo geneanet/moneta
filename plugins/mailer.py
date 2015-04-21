@@ -13,11 +13,12 @@ logger = logging.getLogger('moneta.plugins.mailer')
 def getDependencies():
     return ['PluginRegistry', 'Cluster']
 
-def init(registry, cluster):
-    return MailerPlugin(registry, cluster)
+def init(config, registry, cluster):
+    return MailerPlugin(config, registry, cluster)
 
 class MailerPlugin(object):
-    def __init__(self, registry, cluster):
+    def __init__(self, config, registry, cluster):
+        self.config = config
         self.registry = registry
         self.cluster = cluster
 

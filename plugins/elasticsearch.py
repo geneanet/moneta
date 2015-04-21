@@ -16,11 +16,12 @@ logger = logging.getLogger('moneta.plugins.elasticsearch')
 def getDependencies():
     return ['PluginRegistry', 'Cluster']
 
-def init(registry, cluster):
-    return ElasticSearchPlugin(registry, cluster)
+def init(config, registry, cluster):
+    return ElasticSearchPlugin(config, registry, cluster)
 
 class ElasticSearchPlugin(object):
-    def __init__(self, registry, cluster):
+    def __init__(self, config, registry, cluster):
+        self.config = config
         self.registry = registry
         self.cluster = cluster
 
