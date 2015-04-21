@@ -92,10 +92,14 @@ def run():
         local_config['pools'] = args.pools.split(',')
 
     if args.plugindir:
-        local_config['plugindir'] = args.plugindir
+        if not 'plugins' in local_config:
+            local_config['plugins'] = {}
+        local_config['plugins']['path'] = args.plugindir
 
     if args.plugins:
-        local_config['plugins'] = { 'load': args.plugins, 'config': {} }
+        if not 'plugins' in local_config:
+            local_config['plugins'] = {}
+        local_config['plugins']['load'] = args.plugins
 
     # Default values
     if not 'listen' in local_config or not local_config['listen']:
@@ -110,11 +114,17 @@ def run():
     if not 'pools' in local_config or not local_config['pools']:
         local_config['pools'] = ['default']
 
-    if not 'plugindir' in local_config or not local_config['plugindir']:
-        local_config['plugindir'] = "plugins"
-
     if not 'plugins' in local_config or not local_config['plugins']:
-        local_config['plugins'] = { 'load': [], 'config': {} }
+        local_config['plugins'] = { }
+
+    if not 'path' in local_config['plugins'] or not local_config['plugins']['path']:
+        local_config['plugins']['path'] = "plugins"
+
+    if not 'load' in local_config['plugins'] or not local_config['plugins']['load']:
+        local_config['plugins']['load'] = []
+
+    if not 'config' in local_config['plugins'] or not local_config['plugins']['config']:
+        local_config['plugins']['config'] = {}
 
     logger.debug('Local config: %s', local_config)
 
@@ -134,7 +144,7 @@ def run():
         registry.add_module('Manager', manager)
         registry.add_module('Server', server)
 
-        registry.set_plugin_dir(local_config['plugindir'])
+        registry.set_plugin_dir(local_config['plugins']['path'])
 
         for plugin in local_config['plugins']['load']:
             if 'config' in local_config['plugins'] and plugin in local_config['plugins']['config']:
