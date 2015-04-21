@@ -57,7 +57,7 @@ class MonetaScheduler(object):
             last_tick = this_tick
 
         else:
-            logger.debug("TICK: last tick %d seconds ago", (this_tick - last_tick))
+            logger.debug("TICK: last tick %d seconds ago (current interval %s to %s)", (this_tick - last_tick), datetime.fromtimestamp(last_tick).strftime("%H:%M:%S.%f"), datetime.fromtimestamp(this_tick).strftime("%H:%M:%S.%f"))
 
             for (task_id, task_config) in self.cluster.config['tasks'].iteritems():
                 should_run = False
