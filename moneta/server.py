@@ -308,16 +308,6 @@ class MonetaServer(HTTPServer):
 
             get_plugin_registry().call_hook('ReceivedReport', report)
 
-            taskconfig = self.cluster.config['tasks'][task]
-
-            taskconfig['last_report'] = {
-                'status': report['status'],
-                'start_time': report['start_time'],
-                'end_time': report['end_time'],
-                'duration': report['duration']
-            }
-            self.cluster.update_config()
-
             return HTTPReply(code = 200)
 
         else:
