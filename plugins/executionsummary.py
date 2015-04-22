@@ -56,10 +56,9 @@ class ExecutionSummaryPlugin(object):
                 try:
                     (summary, stat) = self.cluster.zk.get('/moneta/executionsummary/%s' % (task))
                     summary = json.loads(summary)
+                    tasks[task] = summary
                 except NoNodeError:
-                    summary = {}
-
-                tasks[task] = summary
+                    pass
 
             return HTTPReply(code = 200, body = json.dumps(tasks), headers = headers)
 
