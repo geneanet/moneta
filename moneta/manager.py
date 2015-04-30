@@ -10,6 +10,7 @@ from grp import getgrnam
 from os import setgid, setuid, setgroups, chdir, environ
 import json
 import uuid
+from locale import getpreferredencoding
 
 from gevent.subprocess import Popen
 from subprocess import PIPE
@@ -136,8 +137,8 @@ class MonetaManager(object):
             report.update({
                 "status": status,
                 "returncode": returncode,
-                "stdout": stdout,
-                "stderr": stderr
+                "stdout": stdout.decode(getpreferredencoding(), 'backslashreplace'),
+                "stderr": stderr.decode(getpreferredencoding(), 'backslashreplace')
             })
 
         except GreenletExit:
