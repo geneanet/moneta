@@ -137,8 +137,8 @@ class MonetaManager(object):
             report.update({
                 "status": status,
                 "returncode": returncode,
-                "stdout": stdout.decode(getpreferredencoding(), 'backslashreplace'),
-                "stderr": stderr.decode(getpreferredencoding(), 'backslashreplace')
+                "stdout": stdout.decode(getpreferredencoding(), 'replace'),
+                "stderr": stderr.decode(getpreferredencoding(), 'replace')
             })
 
         except GreenletExit:
