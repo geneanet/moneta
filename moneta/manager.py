@@ -160,18 +160,22 @@ class MonetaManager(object):
             })
 
         finally:
-            end = datetime.utcnow().replace(tzinfo = pytz.utc)
+            try:
+                end = datetime.utcnow().replace(tzinfo = pytz.utc)
 
-            report.update({
-                "end_time": end.isoformat(),
-                "duration": (end - start).total_seconds()
-            })
+                report.update({
+                    "end_time": end.isoformat(),
+                    "duration": (end - start).total_seconds()
+                })
 
-            logger.info("Reporting task %s execution results to master", task)
+                logger.info("Reporting task %s execution results to master", task)
 
-            addr = parse_host_port(self.cluster.nodes[self.cluster.master]['address'])
-            client = HTTPClient(addr)
-            ret = client.request(HTTPRequest(uri = '/tasks/%s/report' % task, method = 'POST', body = json.dumps(report)))
+                addr = parse_host_port(self.cluster.nodes[self.cluster.master]['address'])
+                client = HTTPClient(addr)
+                ret = client.request(HTTPRequest(uri = '/tasks/%s/report' % task, method = 'POST', body = json.dumps(report)))
 
-            if ret.code != 200:
-                logger.error("Encountered an error while sending task %s execution report. Master returned %d.", task, ret.code)
+                if ret.code != 200:
+                    logger.error("Encountered an error while sending task %s execution report. Master returned %d.", task, ret.code)
+
+            except Exception, e:
+                logger.exception("Encountered an exception while running task %s", task)
