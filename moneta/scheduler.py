@@ -50,67 +50,74 @@ class MonetaScheduler(object):
     def tick(self):
         """ Every tick, run jobs which had to be started between now and the last tick """
 
-        this_tick = time.time()
-        last_tick = self.cluster.get_last_tick()
+        try:
+            this_tick = time.time()
+            last_tick = self.cluster.get_last_tick()
 
-        if not last_tick:
-            last_tick = this_tick
+            if not last_tick:
+                last_tick = this_tick
 
-        else:
-            logger.debug("TICK: last tick %d seconds ago (current interval %s to %s)", (this_tick - last_tick), datetime.fromtimestamp(last_tick).strftime("%H:%M:%S.%f"), datetime.fromtimestamp(this_tick).strftime("%H:%M:%S.%f"))
+            else:
+                logger.debug("TICK: last tick %d seconds ago (current interval %s to %s)", (this_tick - last_tick), datetime.fromtimestamp(last_tick).strftime("%H:%M:%S.%f"), datetime.fromtimestamp(this_tick).strftime("%H:%M:%S.%f"))
 
-            for (task_id, task_config) in self.cluster.config['tasks'].iteritems():
-                should_run = False
+                for (task_id, task_config) in self.cluster.config['tasks'].iteritems():
+                    should_run = False
 
-                if not 'enabled' in task_config or not task_config['enabled']:
-                    continue
+                    if not 'enabled' in task_config or not task_config['enabled']:
+                        continue
 
-                for schedule in [ Schedule(**schedule) for schedule in task_config['schedules'] ]:
-                    if schedule.match_interval(datetime.fromtimestamp(last_tick), datetime.fromtimestamp(this_tick)):
-                        should_run = True
-                        break
+                    for schedule in [ Schedule(**schedule) for schedule in task_config['schedules'] ]:
+                        if schedule.match_interval(datetime.fromtimestamp(last_tick), datetime.fromtimestamp(this_tick)):
+                            should_run = True
+                            break
 
-                if should_run:
-                    gevent.spawn(self.run_task, task_id)
+                    if should_run:
+                        gevent.spawn(self.run_task, task_id)
 
-        self.cluster.update_last_tick(this_tick)
+            self.cluster.update_last_tick(this_tick)
+
+        except Exception, e:
+            logger.exception("Encountered an exception in ticker (TICK %d). Some schedules may have been missed.", this_tick)
 
     def  run_task(self, task):
         """ Run a job on the appropriate nodes """
 
         logger.info("Preparing to run task %s on appropriate nodes", task)
 
-        task_config = self.cluster.config['tasks'][task]
+        try:
+            task_config = self.cluster.config['tasks'][task]
 
-        if 'pools' in task_config:
-            pools = task_config['pools']
-        else:
-            pools = [ "default" ]
-
-        nodes = []
-        for pool in pools:
-            if pool in self.cluster.pools:
-                nodes += self.cluster.pools[pool]
+            if 'pools' in task_config:
+                pools = task_config['pools']
             else:
-                logger.warning("Task %s should run on pool %s but there is no such pool in the cluster.", task, pool)
+                pools = [ "default" ]
 
-        nodes = list(set(nodes))
+            nodes = []
+            for pool in pools:
+                if pool in self.cluster.pools:
+                    nodes += self.cluster.pools[pool]
+                else:
+                    logger.warning("Task %s should run on pool %s but there is no such pool in the cluster.", task, pool)
 
-        if not nodes:
-            logger.warning("There are no nodes to run task %s !", task)
-            return
+            nodes = list(set(nodes))
 
-        if 'mode' in task_config and task_config['mode'] == 'any':
-            nodes = [ random.choice(nodes) ]
+            if not nodes:
+                logger.warning("There are no nodes to run task %s !", task)
+                return
 
-        for node in nodes:
-            try:
-                addr = parse_host_port(self.cluster.nodes[node]['address'])
-                client = HTTPClient(addr)
-                logger.info("Running task %s on node %s", task, node)
-                ret = client.request(HTTPRequest(uri = '/tasks/%s' % task, method = 'EXECUTE'))
-                if ret.code != 200:
-                    logger.error ("Node %s answered %d when asked to execute task %s !", node, ret.code, task)
-            except Exception:
-                logger.exception("An exception occurred when trying to run task %s on node %s.", task, node)
+            if 'mode' in task_config and task_config['mode'] == 'any':
+                nodes = [ random.choice(nodes) ]
 
+            for node in nodes:
+                try:
+                    addr = parse_host_port(self.cluster.nodes[node]['address'])
+                    client = HTTPClient(addr)
+                    logger.info("Running task %s on node %s", task, node)
+                    ret = client.request(HTTPRequest(uri = '/tasks/%s' % task, method = 'EXECUTE'))
+                    if ret.code != 200:
+                        logger.error ("Node %s answered %d when asked to execute task %s !", node, ret.code, task)
+                except Exception:
+                    logger.exception("An exception occurred when trying to run task %s on node %s.", task, node)
+
+        except Exception, e:
+            logger.exception("Encountered an exception while preparing to run task %s.", task)
