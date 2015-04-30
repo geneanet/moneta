@@ -63,6 +63,8 @@ class MailerPlugin(object):
             u"""\
             Task: {task[name]}
             -------------------------------------------------------------------------------
+            Command: {task[command]}
+            -------------------------------------------------------------------------------
             Status: {report[status]}
             Executed on node: {report[node]}
             Started: {report[start_time]}

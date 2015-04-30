@@ -37,6 +37,8 @@ class ElasticSearchPlugin(object):
         if 'tags' in taskconfig:
             report['task_tags'] = taskconfig['tags']
 
+        report['task_command'] = taskconfig['command']
+
         if self.cluster.config['elasticsearch_url']:
             logger.info("Sending report for task %s to ElasticSearch", task)
 
