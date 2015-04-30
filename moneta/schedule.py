@@ -51,9 +51,9 @@ class Schedule(object):
 
     @staticmethod
     def __match_value(needle, haystack):
-        """ Check if needle is equals to haystack, or included in haystack (if haystack is a list) or if haystack is None """
+        """ Check if needle is equals to haystack, or included in haystack (if haystack is a list) or if haystack is None, empty list, empty string or wildcard """
 
-        if haystack == None:
+        if haystack in [ None, [], "", "*" ]:
             return True
 
         if isinstance(haystack, list):
@@ -75,9 +75,17 @@ class Schedule(object):
                 else:
                     out.append(expanded)
 
-            return list(set(out))
+            out = list(set(out))
+
+            if out == []:
+                return None
+            else:
+                return list(set(out))
 
         elif isinstance(data, str) or isinstance(data, unicode):
+            if data == '':
+                return None
+
             int_re = re.match(r'^[0-9]+$', data)
             list_re = re.match(r'^[0-9\-*/]+(,[0-9\-*/]+)+$', data)
             range_re = re.match(r'^(?P<min>[0-9]+)-(?P<max>[0-9]+)$', data)
