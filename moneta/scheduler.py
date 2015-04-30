@@ -63,13 +63,16 @@ class MonetaScheduler(object):
                 for (task_id, task_config) in self.cluster.config['tasks'].iteritems():
                     should_run = False
 
-                    if not 'enabled' in task_config or not task_config['enabled']:
-                        continue
+                    try:
+                        if not 'enabled' in task_config or not task_config['enabled']:
+                            continue
 
-                    for schedule in [ Schedule(**schedule) for schedule in task_config['schedules'] ]:
-                        if schedule.match_interval(datetime.fromtimestamp(last_tick), datetime.fromtimestamp(this_tick)):
-                            should_run = True
-                            break
+                        for schedule in [ Schedule(**schedule) for schedule in task_config['schedules'] ]:
+                            if schedule.match_interval(datetime.fromtimestamp(last_tick), datetime.fromtimestamp(this_tick)):
+                                should_run = True
+                                break
+                    except Exception, e:
+                        logger.exception("Encountered an exception while trying to match task %s schedules with current tick (TICK %d). The task may not be scheduled correctly.", task_id, this_tick)
 
                     if should_run:
                         gevent.spawn(self.run_task, task_id)
