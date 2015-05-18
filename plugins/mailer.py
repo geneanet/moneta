@@ -106,7 +106,7 @@ class MailerPlugin(object):
         if isinstance(mailto, str) or isinstance(mailto, unicode):
             mailto = [ mailto ]
 
-        msg['Subject'] = u"Moneta Execution Report - Task %s" % taskconfig['name']
+        msg['Subject'] = u"Execution Report - Task %s (status: %s)" % (taskconfig['name'], report['status'])
         msg['From'] = self.cluster.config['email']
         msg['To'] = ",".join(mailto)
 
