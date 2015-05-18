@@ -110,6 +110,10 @@ class MailerPlugin(object):
         msg['From'] = self.cluster.config['email']
         msg['To'] = ",".join(mailto)
 
+        msg['X-Moneta-Status'] = report['status']
+        if 'returncode' in report:
+            msg['X-Moneta-Return-Code'] = "%d" % (report['returncode'])
+
         # Send
 
         s = smtplib.SMTP(self.cluster.config['smtpserver'])
