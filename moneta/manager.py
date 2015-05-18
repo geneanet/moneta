@@ -134,11 +134,30 @@ class MonetaManager(object):
             else:
                 status = "error"
 
+            def decodestring(string, encoding = None):
+                """ Decode a string to utf-8. If encoding is not specified, try several ones, and finally fallback on ascii. """
+                try:
+                    if encoding:
+                        return string.decode(encoding, 'replace')
+
+                    else:
+                        encodings = [ getpreferredencoding(), 'utf-8', 'iso-8859-1' ]
+
+                        for encoding in encodings:
+                            try:
+                                return string.decode(encoding)
+
+                            except UnicodeDecodeError:
+                                continue
+
+                except UnicodeError:
+                    return string.decode('ascii', 'replace')
+
             report.update({
                 "status": status,
                 "returncode": returncode,
-                "stdout": stdout.decode(getpreferredencoding(), 'replace'),
-                "stderr": stderr.decode(getpreferredencoding(), 'replace')
+                "stdout": decodestring(stdout),
+                "stderr": decodestring(stderr)
             })
 
         except GreenletExit:
