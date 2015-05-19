@@ -15,3 +15,4 @@ listen: 127.0.0.1:32000
 zookeeper:
     - 127.0.0.1:2181
 nodename: mynode
+leader: true

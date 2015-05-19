@@ -29,6 +29,8 @@ def run():
     parser.add_argument('--plugindir', nargs='?', default=None, help='Plugins directory')
     parser.add_argument('--plugins', nargs='+', default=None, help='Load plugin(s)')
     parser.add_argument('--config', nargs='?', default=None, help='Config file')
+    parser.add_argument('--leader', dest='leader', action='store_true', help='Contend to leader elections')
+    parser.add_argument('--no-leader', dest='leader', action='store_false', help='Do not contend to leader elections')
     args = parser.parse_args()
 
     # Logging
@@ -101,6 +103,9 @@ def run():
             local_config['plugins'] = {}
         local_config['plugins']['load'] = args.plugins
 
+    if args.leader:
+        local_config['leader'] = args.leader
+
     # Default values
     if not 'listen' in local_config or not local_config['listen']:
         local_config['listen'] = "127.0.0.1:32000"
@@ -126,6 +131,9 @@ def run():
     if not 'config' in local_config['plugins'] or not local_config['plugins']['config']:
         local_config['plugins']['config'] = {}
 
+    if not 'leader' in local_config or not local_config['leader']:
+        local_config['leader'] = True
+
     logger.debug('Local config: %s', local_config)
 
     # Main
@@ -133,7 +141,7 @@ def run():
         logger.debug('Starting')
 
         # Instanciate Cluster, Manager and Server
-        cluster = MonetaCluster(local_config['nodename'], local_config['listen'], ','.join(local_config['zookeeper']), pools = local_config['pools'])
+        cluster = MonetaCluster(local_config['nodename'], local_config['listen'], ','.join(local_config['zookeeper']), pools = local_config['pools'], contend_for_lead = local_config['leader'])
         manager = MonetaManager(cluster)
         server = MonetaServer(cluster, manager, local_config['listen'])
 

@@ -19,12 +19,13 @@ from moneta.pluginregistry import get_plugin_registry
 logger = logging.getLogger('moneta.cluster')
 
 class MonetaCluster(object):
-    def __init__(self, nodename, addr, zkhosts, handler=SequentialGeventHandler(), pools = ["default"]):
+    def __init__(self, nodename, addr, zkhosts, handler=SequentialGeventHandler(), pools = ["default"], contend_for_lead = True):
         self.scheduler = MonetaScheduler(self)
 
         self.nodename = nodename
         self.addr = addr
         self.mypools = pools
+        self.contend_for_lead = contend_for_lead
 
         self.nodes = []
         self.pools = {}
@@ -66,7 +67,9 @@ class MonetaCluster(object):
         try:
             self.join_cluster()
             self.join_pools()
-            self.join_leader_election()
+
+            if self.contend_for_lead:
+                self.join_leader_election()
 
             if self.is_master:
                 self.scheduler.run()
