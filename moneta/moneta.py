@@ -62,7 +62,7 @@ def run():
 
     def handle_sigwinch():
         """ Clean exit, waiting for currently running tasks to finish """
-        logger.info('Received SIGUSR1.')
+        logger.info('Received SIGWINCH.')
         cluster.quit_pools()
         manager.shutdown()
         sys.exit(0)
