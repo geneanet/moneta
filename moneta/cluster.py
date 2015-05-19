@@ -29,7 +29,7 @@ class MonetaCluster(object):
 
         self.nodes = []
         self.pools = {}
-        self.master = None
+        self.leader = None
         self.config = {
             'tasks': {},
             'tick': 60,
@@ -47,7 +47,7 @@ class MonetaCluster(object):
         self.pools_joined = False
         self.contending_for_lead = False
 
-        self.is_master = False
+        self.is_leader = False
 
         self.zk = KazooClient(zkhosts, handler = handler)
 
@@ -71,7 +71,7 @@ class MonetaCluster(object):
             if self.contend_for_lead:
                 self.join_leader_election()
 
-            if self.is_master:
+            if self.is_leader:
                 self.scheduler.run()
         except Exception:
             logger.exception("Exception encountered while starting cluster")
@@ -80,7 +80,7 @@ class MonetaCluster(object):
 
     def stop(self):
         try:
-            if self.is_master:
+            if self.is_leader:
                 self.scheduler.stop()
 
             self.quit_leader_election()
@@ -227,7 +227,7 @@ class MonetaCluster(object):
             self.pools_joined = False
             self.cluster_joined = False
             self.contending_for_lead = False
-            self.is_master = False
+            self.is_leader = False
 
             if self.scheduler.running:
                 self.scheduler.stop()
@@ -247,19 +247,19 @@ class MonetaCluster(object):
 
         nodes = [self.zk.get("/moneta/election/%s" % child)[0] for child in children]
 
-        oldmaster = self.master
+        oldleader = self.leader
 
         if nodes:
-            self.master = nodes[0]
+            self.leader = nodes[0]
         else:
-            self.master = None
+            self.leader = None
 
-        if oldmaster != self.master:
-            logger.info("Master change : %s", self.master)
+        if oldleader != self.leader:
+            logger.info("Leader change : %s", self.leader)
 
-        if not self.is_master and self.master == self.nodename:
-            logger.info("I am now the master.")
-            self.is_master = True
+        if not self.is_leader and self.leader == self.nodename:
+            logger.info("I am now the leader.")
+            self.is_leader = True
             self.scheduler.run()
 
     def _handle_config_update(self, data, stat):

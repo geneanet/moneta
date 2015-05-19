@@ -86,7 +86,7 @@ class MonetaManager(object):
         greenlet.start()
 
     def _execute_task(self, task):
-        """Execute a task and send the results to the master"""
+        """Execute a task and send the results to the leader"""
 
         logger.info("Running task %s", task)
 
@@ -187,14 +187,14 @@ class MonetaManager(object):
                     "duration": (end - start).total_seconds()
                 })
 
-                logger.info("Reporting task %s execution results to master", task)
+                logger.info("Reporting task %s execution results to leader", task)
 
-                addr = parse_host_port(self.cluster.nodes[self.cluster.master]['address'])
+                addr = parse_host_port(self.cluster.nodes[self.cluster.leader]['address'])
                 client = HTTPClient(addr)
                 ret = client.request(HTTPRequest(uri = '/tasks/%s/report' % task, method = 'POST', body = json.dumps(report)))
 
                 if ret.code != 200:
-                    logger.error("Encountered an error while sending task %s execution report. Master returned %d.", task, ret.code)
+                    logger.error("Encountered an error while sending task %s execution report. Leader returned %d.", task, ret.code)
 
             except Exception, e:
                 logger.exception("Encountered an exception while running task %s", task)

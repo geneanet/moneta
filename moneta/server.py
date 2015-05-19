@@ -90,7 +90,7 @@ class MonetaServer(HTTPServer):
 
         status  = {
             'nodes': self.cluster.nodes,
-            'master': self.cluster.master
+            'leader': self.cluster.leader
         }
 
         if request.method == "GET":
@@ -122,7 +122,7 @@ class MonetaServer(HTTPServer):
             'name': self.cluster.nodename,
             'address': self.cluster.addr,
             'pools': self.cluster.mypools,
-            'master': self.cluster.is_master,
+            'leader': self.cluster.is_leader,
             'cluster_joined': self.cluster.cluster_joined,
             'pools_joined': self.cluster.pools_joined,
             'contending_for_lead': self.cluster.contending_for_lead,

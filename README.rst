@@ -57,7 +57,7 @@ An AngularJS/Foundation app is available to offer a nice GUI (see http://github.
           "address": "127.0.0.1:32003"
         },
       },
-      "master": "node1"
+      "leader": "node1"
     }
 
 - **GET /cluster/config/<option>**
@@ -79,7 +79,7 @@ An AngularJS/Foundation app is available to offer a nice GUI (see http://github.
 
     {
       "execution_enabled": true,
-      "master": false,
+      "leader": false,
       "name": "node2",
       "scheduler_running": false,
       "address": "127.0.0.1:32002",
