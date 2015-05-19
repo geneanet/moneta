@@ -6,6 +6,7 @@ from gevent.server import StreamServer
 from gevent.socket import socket
 from gevent import sleep
 import logging
+from fcntl import fcntl, F_GETFD, F_SETFD, FD_CLOEXEC
 
 from moneta.http.http import *
 
@@ -27,10 +28,17 @@ class HTTPServer(object):
         self.address = address
         self.server = None
 
+    @staticmethod
+    def _set_cloexec(socket):
+        """ Set the CLOEXEC attribute on a file descriptor """
+        flags = fcntl(socket, F_GETFD)
+        fcntl(socket, F_SETFD, flags | FD_CLOEXEC)
+
     def run(self):
         logger.debug("Listening on %s:%d", *self.address)
         self.server = StreamServer(self.address, self.handle_connection)
         self.server.start()
+        self._set_cloexec(self.server.socket)
 
     def run_forever(self):
         self.run()
@@ -39,6 +47,8 @@ class HTTPServer(object):
             sleep(30)
 
     def handle_connection(self, socket, address):
+        self._set_cloexec(self.server.socket)
+
         logger.debug("[%s:%d] Incoming connection", *address)
 
         fp = socket.makefile()
