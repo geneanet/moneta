@@ -60,6 +60,11 @@ def run():
         manager.shutdown(kill = True)
         sys.exit(0)
 
+    def handle_sigquit():
+        """ Dirty exit, currently running tasks will be left running """
+        logger.info('Received SIGQUIT.')
+        sys.exit(0)
+
     def handle_sigwinch():
         """ Clean exit, waiting for currently running tasks to finish """
         logger.info('Received SIGWINCH.')
@@ -68,6 +73,7 @@ def run():
         sys.exit(0)
 
     gevent.signal(signal.SIGTERM, handle_sigterm)
+    gevent.signal(signal.SIGQUIT, handle_sigquit)
     gevent.signal(signal.SIGWINCH, handle_sigwinch)
 
     # Local config
