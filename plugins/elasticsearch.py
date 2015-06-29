@@ -30,30 +30,30 @@ class ElasticSearchPlugin(object):
     def onReceivedReport(self, report):
         """Store the report in ElasticSearch"""
 
-        task = report['task']
-        taskconfig = self.cluster.config['tasks'][task]
+        try:
+            task = report['task']
+            taskconfig = self.cluster.config['tasks'][task]
 
-        report['task_name'] = taskconfig['name']
-        if 'tags' in taskconfig:
-            report['task_tags'] = taskconfig['tags']
+            report['task_name'] = taskconfig['name']
+            if 'tags' in taskconfig:
+                report['task_tags'] = taskconfig['tags']
 
-        report['task_command'] = taskconfig['command']
+            report['task_command'] = taskconfig['command']
 
-        if self.cluster.config['elasticsearch_url']:
-            logger.info("Sending report for task %s to ElasticSearch", task)
+            if self.cluster.config['elasticsearch_url']:
+                logger.info("Sending report for task %s to ElasticSearch", task)
 
-            report = report.copy()
+                report = report.copy()
 
-            report['@timestamp'] = datetime.utcnow().replace(tzinfo = pytz.utc).isoformat()
+                report['@timestamp'] = datetime.utcnow().replace(tzinfo = pytz.utc).isoformat()
 
-            (addr, path, index) = self.cluster.get_elasticsearch_config()
+                (addr, path, index) = self.cluster.get_elasticsearch_config()
 
-            try:
                 client = HTTPClient(addr)
                 ret = client.request(HTTPRequest(uri = "%s%s/%s" % (path, index, 'moneta-task-report'), method = 'POST', body = json.dumps(report)))
 
                 if ret.code > 400:
                     raise Exception("Unable to log in ElasticSearch: Response code %d (%s)" % (ret.code, ret.body))
 
-            except Exception:
-                raise Exception("Unable to log in ElasticSearch")            
+        except Exception, e:
+            logger.error('An error has been encountered while storing report in ElasticSearch (%s)', str(e))

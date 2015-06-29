@@ -27,95 +27,99 @@ class MailerPlugin(object):
     def onReceivedReport(self, report):
         """Send a report by email"""
 
-        task = report['task']
-        taskconfig = self.cluster.config['tasks'][task]
+        try:
+            task = report['task']
+            taskconfig = self.cluster.config['tasks'][task]
 
-        report['task_name'] = taskconfig['name']
-        if 'tags' in taskconfig:
-            report['task_tags'] = taskconfig['tags']
+            report['task_name'] = taskconfig['name']
+            if 'tags' in taskconfig:
+                report['task_tags'] = taskconfig['tags']
 
-        if not ('mailreport' in taskconfig and (
-                (taskconfig['mailreport'] == 'error' and report['status'] != 'ok')
-                or (taskconfig['mailreport'] == 'stdout' and 'stdout' in report and report['stdout'])
-                or (taskconfig['mailreport'] == 'stderr' and 'stderr' in report and report['stderr'])
-                or (taskconfig['mailreport'] == 'output' and (
-                    ('stderr' in report and report['stderr'])
-                    or ('stdout' in report and report['stdout'])
-                    ))
-                or taskconfig['mailreport'] == 'always'
-            )):
-            return
+            if not ('mailreport' in taskconfig and (
+                    (taskconfig['mailreport'] == 'error' and report['status'] != 'ok')
+                    or (taskconfig['mailreport'] == 'stdout' and 'stdout' in report and report['stdout'])
+                    or (taskconfig['mailreport'] == 'stderr' and 'stderr' in report and report['stderr'])
+                    or (taskconfig['mailreport'] == 'output' and (
+                        ('stderr' in report and report['stderr'])
+                        or ('stdout' in report and report['stdout'])
+                        ))
+                    or taskconfig['mailreport'] == 'always'
+                )):
+                return
 
-        logger.info("Sending mail report for task %s", task)
+            logger.info("Sending mail report for task %s", task)
 
-        if not self.cluster.config['smtpserver']:
-            raise Exception("An email report should be delivered for task %s, but no smtp server has been configured.")
+            if not self.cluster.config['smtpserver']:
+                raise Exception("An email report should be delivered for task %s, but no smtp server has been configured.")
 
-        if not self.cluster.config['email']:
-            raise Exception("An email report should be delivered for task %s, but no sender email has been configured.")
+            if not self.cluster.config['email']:
+                raise Exception("An email report should be delivered for task %s, but no sender email has been configured.")
 
-        if not 'mailto' in taskconfig or not taskconfig['mailto']:
-            raise Exception("An email report should be delivered for task %s, but the task has no mailto parameter or mailto is empty.")
+            if not 'mailto' in taskconfig or not taskconfig['mailto']:
+                raise Exception("An email report should be delivered for task %s, but the task has no mailto parameter or mailto is empty.")
 
-        # Template
+            # Template
 
-        msgbody = dedent(
-            u"""\
-            Task: {task[name]}
-            -------------------------------------------------------------------------------
-            Command: {task[command]}
-            -------------------------------------------------------------------------------
-            Status: {report[status]}
-            Executed on node: {report[node]}
-            Started: {report[start_time]}
-            Ended: {report[end_time]}
-            Duration: {report[duration]} seconds
-            -------------------------------------------------------------------------------
-            """)
+            msgbody = dedent(
+                u"""\
+                Task: {task[name]}
+                -------------------------------------------------------------------------------
+                Command: {task[command]}
+                -------------------------------------------------------------------------------
+                Status: {report[status]}
+                Executed on node: {report[node]}
+                Started: {report[start_time]}
+                Ended: {report[end_time]}
+                Duration: {report[duration]} seconds
+                -------------------------------------------------------------------------------
+                """)
 
-        if report['status'] == "fail":
-            msgbody += "Error: {report[error]}\n"
-        else:
-            msgbody += "Return code: {report[returncode]}\n"
+            if report['status'] == "fail":
+                msgbody += "Error: {report[error]}\n"
+            else:
+                msgbody += "Return code: {report[returncode]}\n"
 
-            if report['stdout']:
-                msgbody += dedent(
-                    """\
+                if report['stdout']:
+                    msgbody += dedent(
+                        """\
 
-                    stdout :
-                    -------------------------------------------------------------------------------
-                    {report[stdout]}
-                    -------------------------------------------------------------------------------
-                    """)
+                        stdout :
+                        -------------------------------------------------------------------------------
+                        {report[stdout]}
+                        -------------------------------------------------------------------------------
+                        """)
 
-            if report['stderr']:
-                msgbody += dedent(
-                    """\
+                if report['stderr']:
+                    msgbody += dedent(
+                        """\
 
-                    stderr :
-                    -------------------------------------------------------------------------------
-                    {report[stderr]}
-                    -------------------------------------------------------------------------------
-                    """)
+                        stderr :
+                        -------------------------------------------------------------------------------
+                        {report[stderr]}
+                        -------------------------------------------------------------------------------
+                        """)
 
-        # Message
+            # Message
 
-        msg = MIMEText(msgbody.format(task = taskconfig, report = report), "plain", "utf-8")
+            msg = MIMEText(msgbody.format(task = taskconfig, report = report), "plain", "utf-8")
 
-        mailto = taskconfig['mailto']
-        if isinstance(mailto, str) or isinstance(mailto, unicode):
-            mailto = [ mailto ]
+            mailto = taskconfig['mailto']
+            if isinstance(mailto, str) or isinstance(mailto, unicode):
+                mailto = [ mailto ]
 
-        msg['Subject'] = u"Execution Report - Task %s (status: %s)" % (taskconfig['name'], report['status'])
-        msg['From'] = self.cluster.config['email']
-        msg['To'] = ",".join(mailto)
+            msg['Subject'] = u"Execution Report - Task %s (status: %s)" % (taskconfig['name'], report['status'])
+            msg['From'] = self.cluster.config['email']
+            msg['To'] = ",".join(mailto)
 
-        msg['X-Moneta-Status'] = report['status']
-        if 'returncode' in report:
-            msg['X-Moneta-Return-Code'] = "%d" % (report['returncode'])
+            msg['X-Moneta-Status'] = report['status']
+            if 'returncode' in report:
+                msg['X-Moneta-Return-Code'] = "%d" % (report['returncode'])
 
-        # Send
+            # Send
 
-        s = smtplib.SMTP(self.cluster.config['smtpserver'])
-        s.sendmail(self.cluster.config['email'], mailto, msg.as_string())
-        s.quit()
+            s = smtplib.SMTP(self.cluster.config['smtpserver'])
+            s.sendmail(self.cluster.config['email'], mailto, msg.as_string())
+            s.quit()
+
+        except Exception, e:
+            logger.error('An error has been encountered while sending a report by mail (%s)', str(e))
