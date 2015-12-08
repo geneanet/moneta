@@ -99,7 +99,7 @@ class MonetaManager(object):
         }
 
         try:
-            taskconfig = self.cluster.config['tasks'][task]
+            taskconfig = self.cluster.config.get('tasks')[task]
 
             def drop_privileges():
                 """Change user, group and workdir before running the process"""

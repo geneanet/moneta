@@ -52,7 +52,7 @@ class ExecutionSummaryPlugin(object):
         if request.method == "GET":
             tasks = {}
 
-            for task in self.cluster.config['tasks']:
+            for task in self.cluster.config.get('tasks'):
                 try:
                     (summary, stat) = self.cluster.zk.get('/moneta/executionsummary/%s' % (task))
                     summary = json.loads(summary)
@@ -84,4 +84,3 @@ class ExecutionSummaryPlugin(object):
 
         except Exception, e:
             logger.error('Cant update execution summary (%s)', str(e))
-

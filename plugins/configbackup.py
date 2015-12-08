@@ -37,8 +37,8 @@ class ConfigBackupPlugin(object):
         try:
             with open(self.path, 'w') as f:
                 if self.format == 'json':
-                    f.write(json.dumps(config))
+                    f.write(json.dumps(config.get_config()))
                 elif self.format == 'yaml':
-                    f.write(yaml.safe_dump(config))
+                    f.write(yaml.safe_dump(config.get_config()))
         except Exception, e:
             logger.error('Unable to backup configuration in format %s to file %s (%s)', self.format, self.path, str(e))

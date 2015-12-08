@@ -45,7 +45,7 @@ class MonetaScheduler(object):
         """ Method executed every /tick/ seconds when scheduler is running """
 
         gevent.spawn(self.tick)
-        self.greenlet = gevent.spawn_later(self.cluster.config['tick'], self.ticker)
+        self.greenlet = gevent.spawn_later(self.cluster.config.get('tick'), self.ticker)
 
     def tick(self):
         """ Every tick, run jobs which had to be started between now and the last tick """
@@ -60,7 +60,7 @@ class MonetaScheduler(object):
             else:
                 logger.debug("TICK: last tick %d seconds ago (current interval %s to %s)", (this_tick - last_tick), datetime.fromtimestamp(last_tick).strftime("%H:%M:%S.%f"), datetime.fromtimestamp(this_tick).strftime("%H:%M:%S.%f"))
 
-                for (task_id, task_config) in self.cluster.config['tasks'].iteritems():
+                for (task_id, task_config) in self.cluster.config.get('tasks').iteritems():
                     should_run = False
 
                     try:
@@ -88,7 +88,7 @@ class MonetaScheduler(object):
         logger.info("Preparing to run task %s on appropriate nodes", task)
 
         try:
-            task_config = self.cluster.config['tasks'][task]
+            task_config = self.cluster.config.get('tasks')[task]
 
             if 'pools' in task_config:
                 pools = task_config['pools']

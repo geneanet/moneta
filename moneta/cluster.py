@@ -7,14 +7,12 @@ from kazoo.handlers.gevent import SequentialGeventHandler
 from kazoo.exceptions import NodeExistsError, NoNodeError
 
 import json
-from urlparse import urlparse
-from datetime import datetime
-import pytz
 import logging
 import gevent
 
 from moneta.scheduler import MonetaScheduler
 from moneta.pluginregistry import get_plugin_registry
+from moneta.clusterconfig import MonetaClusterConfig
 
 logger = logging.getLogger('moneta.cluster')
 
@@ -30,15 +28,10 @@ class MonetaCluster(object):
         self.nodes = []
         self.pools = {}
         self.leader = None
-        self.config = {
-            'tasks': {},
-            'tick': 60,
-            'email': None,
-            'smtpserver': None,
-            'elasticsearch_url': None,
-            'elasticsearch_index': None,
-            'elasticsearch_dateformat': None
-        }
+
+        self.config = MonetaClusterConfig(self)
+        self.config.set_default('tasks', {})
+        self.config.set_default('tick', 60)
 
         self.electionticket = None
         self.pools_watchers = {}
@@ -119,7 +112,7 @@ class MonetaCluster(object):
 
         # Set default config if needed
         try:
-            self.zk.create('/moneta/config', json.dumps(self.config), makepath = True)
+            self.zk.create('/moneta/config', json.dumps(self.config.get_config()), makepath = True)
             logger.info("No cluster config found, default valuess have been set.")
         except NodeExistsError:
             pass
@@ -198,27 +191,8 @@ class MonetaCluster(object):
         except NoNodeError:
             self.zk.create('/moneta/last_tick', "%f" % tick, makepath = True)
 
-    def update_config(self):
-        self.zk.set('/moneta/config', json.dumps(self.config))
-
-    def get_elasticsearch_config(self):
-        url = urlparse(self.config['elasticsearch_url'])
-
-        addr = (url.hostname, url.port)
-        path = url.path
-
-        if path[-1] != '/':
-            path += '/'
-
-        if self.config['elasticsearch_dateformat']:
-            date = datetime.utcnow().replace(tzinfo = pytz.utc).strftime(self.config['elasticsearch_dateformat'])
-        else:
-            date = ""
-
-        index = self.config['elasticsearch_index']
-        index = index.replace('${date}', date)
-
-        return (addr, path, index)
+    def update_config(self, config):
+        self.zk.set('/moneta/config', json.dumps(config))
 
     def _handle_connection_change(self, state):
         if state == KazooState.LOST:
@@ -265,7 +239,7 @@ class MonetaCluster(object):
     def _handle_config_update(self, data, stat):
         logger.debug("Cluster config update")
         logger.debug("Cluster config : %s", data)
-        self.config = json.loads(data)
+        self.config.set_config(json.loads(data))
         get_plugin_registry().call_hook('ConfigUpdated', self.config)
 
     def _handle_nodes_update(self, children):

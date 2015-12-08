@@ -145,7 +145,7 @@ class MonetaServer(HTTPServer):
 
         if request.method == "GET":
             return HTTPReply(body = json.dumps(self.cluster.pools), headers = headers)
-            
+
         else:
             return HTTPReply(code = 405)
 
@@ -158,21 +158,14 @@ class MonetaServer(HTTPServer):
         name = match.group(1)
 
         if request.method == "GET":
-            if name in self.cluster.config:
-                return HTTPReply(body = json.dumps(self.cluster.config[name]), headers = headers)
-            else:
+            try:
+                return HTTPReply(body = json.dumps(self.cluster.config.get(name)), headers = headers)
+            except NameError:
                 return HTTPReply(code = 404)
 
         elif request.method == "PUT":
-            if name in self.cluster.config:
-                code = 204
-            else:
-                code = 201
-
-            self.cluster.config[name] = json.loads(request.body)
-            self.cluster.update_config()
-
-            return HTTPReply(code = code)
+            self.cluster.config.set(name, json.loads(request.body))
+            return HTTPReply(code = 204)
 
         else:
             return HTTPReply(code = 405)
@@ -185,7 +178,7 @@ class MonetaServer(HTTPServer):
         if request.method == "GET":
             tags = []
 
-            for task in self.cluster.config['tasks'].itervalues():
+            for task in self.cluster.config.get('tasks').itervalues():
                 if 'tags' in task:
                     tags += task['tags']
 
@@ -214,7 +207,7 @@ class MonetaServer(HTTPServer):
         headers = { 'Content-Type': 'application/javascript' }
 
         if request.method == "GET":
-            tasks  = self.cluster.config['tasks']
+            tasks  = self.cluster.config.get('tasks')
 
             if 'tag' in request.args and request.args['tag']:
                 tasks = dict( (taskid, task) for taskid, task in tasks.iteritems() if 'tags' in task and request.args['tag'] in task['tags'] )
@@ -222,14 +215,14 @@ class MonetaServer(HTTPServer):
             return HTTPReply(code = 200, body = json.dumps(tasks), headers = headers)
 
         if request.method == "DELETE":
-            self.cluster.config['tasks']= {}
-            self.cluster.update_config()
+            self.cluster.config.set('tasks', {})
             return HTTPReply(code = 204, body = json.dumps({"deleted": True}))
 
         elif request.method == "POST":
             task = uuid.uuid1().hex
-            self.cluster.config['tasks'][task] = json.loads(request.body)
-            self.cluster.update_config()
+            tasks = self.cluster.config.get('tasks')
+            tasks[task] = json.loads(request.body)
+            self.cluster.config.set('tasks', tasks)
 
             return HTTPReply(code = 201, body = json.dumps({"id": task, "created": True}))
 
@@ -244,29 +237,32 @@ class MonetaServer(HTTPServer):
         match = re.match('/tasks/([0-9a-z]+)', request.uri_path)
         task = match.group(1)
 
+        tasks = self.cluster.config.get('tasks')
+
         if request.method == "GET":
-            if task in self.cluster.config['tasks']:
-                return HTTPReply(code = 200, body = json.dumps(self.cluster.config['tasks'][task]), headers = headers)
+            if task in tasks:
+                return HTTPReply(code = 200, body = json.dumps(tasks[task]), headers = headers)
             else:
                 return HTTPReply(code = 404)
 
         elif request.method == "PUT":
-            if task in self.cluster.config['tasks']:
+            if task in tasks:
                 code = 204
                 body = json.dumps({"id": task, "updated": True})
             else:
                 code = 201
                 body = json.dumps({"id": task, "created": True})
 
-            self.cluster.config['tasks'][task] = json.loads(request.body)
-            self.cluster.update_config()
+            tasks[task] = json.loads(request.body)
+
+            self.cluster.config.set('tasks', tasks)
 
             return HTTPReply(code = code, body = body)
 
         elif request.method == "DELETE":
-            if task in self.cluster.config['tasks']:
-                del self.cluster.config['tasks'][task]
-                self.cluster.update_config()
+            if task in tasks:
+                del tasks[task]
+                self.cluster.config.set('tasks', tasks)
                 return HTTPReply(code = 204, body = json.dumps({"id": task, "deleted": True}))
             else:
                 return HTTPReply(code = 404)
@@ -290,12 +286,14 @@ class MonetaServer(HTTPServer):
 
         enabled = (action == 'en')
 
+        tasks = self.cluster.config.get('tasks')
+
         if request.method == "POST":
-            if task in self.cluster.config['tasks']:
+            if task in tasks:
                 code = 204
 
-                self.cluster.config['tasks'][task]['enabled'] = enabled
-                self.cluster.update_config()
+                tasks[task]['enabled'] = enabled
+                self.cluster.config.set('tasks', tasks)
 
                 headers = { 'Content-Type': 'application/javascript' }
                 body = json.dumps({"id": task, "updated": True})
@@ -324,4 +322,3 @@ class MonetaServer(HTTPServer):
 
         else:
             return HTTPReply(code = 405)
-            

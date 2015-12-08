@@ -22,6 +22,11 @@ class MailerPlugin(object):
         self.registry = registry
         self.cluster = cluster
 
+        self.cluster.config.set_default('mailer', {
+            'smtpserver': None,
+            'from': None
+        })
+
         self.registry.register_hook('ReceivedReport', self.onReceivedReport)
 
     def onReceivedReport(self, report):
@@ -29,7 +34,8 @@ class MailerPlugin(object):
 
         try:
             task = report['task']
-            taskconfig = self.cluster.config['tasks'][task]
+            taskconfig = self.cluster.config.get('tasks')[task]
+            mailerconfig = self.cluster.config.get('mailer')
 
             report['task_name'] = taskconfig['name']
             if 'tags' in taskconfig:
@@ -49,10 +55,10 @@ class MailerPlugin(object):
 
             logger.info("Sending mail report for task %s", task)
 
-            if not self.cluster.config['smtpserver']:
+            if not 'smtpserver' in mailerconfig or not mailerconfig['smtpserver']:
                 raise Exception("An email report should be delivered for task %s, but no smtp server has been configured.")
 
-            if not self.cluster.config['email']:
+            if not 'sender' in mailerconfig or not mailerconfig['sender']:
                 raise Exception("An email report should be delivered for task %s, but no sender email has been configured.")
 
             if not 'mailto' in taskconfig or not taskconfig['mailto']:
@@ -108,7 +114,7 @@ class MailerPlugin(object):
                 mailto = [ mailto ]
 
             msg['Subject'] = u"Execution Report - Task %s (status: %s)" % (taskconfig['name'], report['status'])
-            msg['From'] = self.cluster.config['email']
+            msg['From'] = mailerconfig['sender']
             msg['To'] = ",".join(mailto)
 
             msg['X-Moneta-Status'] = report['status']
@@ -117,8 +123,8 @@ class MailerPlugin(object):
 
             # Send
 
-            s = smtplib.SMTP(self.cluster.config['smtpserver'])
-            s.sendmail(self.cluster.config['email'], mailto, msg.as_string())
+            s = smtplib.SMTP(mailerconfig['smtpserver'])
+            s.sendmail(mailerconfig['sender'], mailto, msg.as_string())
             s.quit()
 
         except Exception, e:
