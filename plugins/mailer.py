@@ -8,6 +8,7 @@ from email.mime.text import MIMEText
 import smtplib
 from textwrap import dedent
 import dateutil.tz
+import dateutil.parser
 
 logger = logging.getLogger('moneta.plugins.mailer')
 
@@ -54,6 +55,11 @@ class MailerPlugin(object):
             task = report['task']
             taskconfig = self.cluster.config.get('tasks')[task]
             mailerconfig = self.cluster.config.get('mailer')
+
+            if mailerconfig['timezone']:
+                report['start_time'] = dateutil.parser.parse(report['start_time']).astimezone(dateutil.tz.gettz(mailerconfig['timezone']))
+                report['end_time'] = dateutil.parser.parse(report['end_time']).astimezone(dateutil.tz.gettz(mailerconfig['timezone']))
+                logger.debug("Report: %s", report)
 
             report['task_name'] = taskconfig['name']
             if 'tags' in taskconfig:
