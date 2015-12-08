@@ -56,13 +56,13 @@ class MailerPlugin(object):
             logger.info("Sending mail report for task %s", task)
 
             if not 'smtpserver' in mailerconfig or not mailerconfig['smtpserver']:
-                raise Exception("An email report should be delivered for task %s, but no smtp server has been configured.")
+                raise Exception("An email report should be delivered for task %s, but no smtp server has been configured." % task)
 
             if not 'sender' in mailerconfig or not mailerconfig['sender']:
-                raise Exception("An email report should be delivered for task %s, but no sender email has been configured.")
+                raise Exception("An email report should be delivered for task %s, but no sender email has been configured." % task)
 
             if not 'mailto' in taskconfig or not taskconfig['mailto']:
-                raise Exception("An email report should be delivered for task %s, but the task has no mailto parameter or mailto is empty.")
+                raise Exception("An email report should be delivered for task %s, but the task has no mailto parameter or mailto is empty." % task)
 
             # Template
 
