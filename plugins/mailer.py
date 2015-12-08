@@ -49,6 +49,8 @@ class MailerPlugin(object):
         """Send a report by email"""
 
         try:
+            report = dict(report)
+
             task = report['task']
             taskconfig = self.cluster.config.get('tasks')[task]
             mailerconfig = self.cluster.config.get('mailer')

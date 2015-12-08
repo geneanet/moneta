@@ -59,6 +59,8 @@ class ElasticSearchPlugin(object):
         """Store the report in ElasticSearch"""
 
         try:
+            report = dict(report)
+
             task = report['task']
             taskconfig = self.cluster.config.get('tasks')[task]
 
