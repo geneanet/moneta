@@ -4,7 +4,7 @@ from __future__ import absolute_import
 
 import logging
 
-import pytz
+import dateutil.tz
 import json
 from urlparse import urlparse
 from datetime import datetime
@@ -46,7 +46,7 @@ class ElasticSearchPlugin(object):
             path += '/'
 
         if esconfig['dateformat']:
-            date = datetime.utcnow().replace(tzinfo = pytz.utc).strftime(esconfig['dateformat'])
+            date = datetime.utcnow().replace(tzinfo = dateutil.tz.tzutc()).strftime(esconfig['dateformat'])
         else:
             date = ""
 
@@ -72,7 +72,7 @@ class ElasticSearchPlugin(object):
 
             report = report.copy()
 
-            report['@timestamp'] = datetime.utcnow().replace(tzinfo = pytz.utc).isoformat()
+            report['@timestamp'] = datetime.utcnow().replace(tzinfo = dateutil.tz.tzutc()).isoformat()
 
             (addr, path, index) = self.get_elasticsearch_config()
 

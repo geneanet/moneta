@@ -4,7 +4,7 @@ from __future__ import absolute_import
 
 import logging
 from datetime import datetime
-import pytz
+import dateutil.tz
 from pwd import getpwnam
 from grp import getgrnam
 from os import setgid, setuid, setgroups, chdir, environ
@@ -79,7 +79,7 @@ class MonetaManager(object):
 
         self.running_processes[execid] = {
             "task": task,
-            "started": datetime.utcnow().replace(tzinfo = pytz.utc),
+            "started": datetime.utcnow().replace(tzinfo = dateutil.tz.tzutc()),
             "greenlet": greenlet
         }
 
@@ -90,7 +90,7 @@ class MonetaManager(object):
 
         logger.info("Running task %s", task)
 
-        start = datetime.utcnow().replace(tzinfo = pytz.utc)
+        start = datetime.utcnow().replace(tzinfo = dateutil.tz.tzutc())
 
         report = {
             "node": self.cluster.nodename,
@@ -180,7 +180,7 @@ class MonetaManager(object):
 
         finally:
             try:
-                end = datetime.utcnow().replace(tzinfo = pytz.utc)
+                end = datetime.utcnow().replace(tzinfo = dateutil.tz.tzutc())
 
                 report.update({
                     "end_time": end.isoformat(),

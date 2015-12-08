@@ -7,7 +7,7 @@ import logging
 from email.mime.text import MIMEText
 import smtplib
 from textwrap import dedent
-import pytz
+import dateutil.tz
 
 logger = logging.getLogger('moneta.plugins.mailer')
 
@@ -39,7 +39,7 @@ class MailerPlugin(object):
         if not set(config.keys()).issubset(set(['smtpserver', 'sender', 'timezone'])):
             raise ValueError('Allowed keys are: smtpserver, sender and timezone')
 
-        if 'timezone' in config and config['timezone'] and config['timezone'] not in pytz.all_timezones:
+        if 'timezone' in config and config['timezone'] and not dateutil.tz.gettz(config['timezone']):
             raise ValueError('Timezone {0} not supported'.format(config['timezone']))
 
         if not config['smtpserver'] or not config['sender']:

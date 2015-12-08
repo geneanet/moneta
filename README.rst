@@ -61,19 +61,19 @@ An AngularJS/Foundation app is available to offer a nice GUI (see http://github.
     }
 
 - **GET /cluster/config/<option>**
-  
+
   Get the config option <option>
 
 - **PUT /cluster/config/<option>**
-  
+
   Set the config option <option>
 
 - **<action> /node/<nodename>/<url>**
-  
+
   Proxy the request "<action> <url>" to the node <nodename>
 
 - **GET /status**
-  
+
   Return the status of the node, with currently running tasks.
   ::
 
@@ -98,9 +98,9 @@ An AngularJS/Foundation app is available to offer a nice GUI (see http://github.
 - **POST /tasks/<task>/(en|dis)able**
 
   Enable/disable a task.
-  
+
 - **GET /tasks/<task>**
-  
+
   Returns the configuration of a task.
   ::
 
@@ -126,15 +126,15 @@ An AngularJS/Foundation app is available to offer a nice GUI (see http://github.
     }
 
 - **DELETE /tasks/<task>**
-  
+
   Delete a task.
 
 - **PUT /tasks/<task>**
-  
+
   Update the configuration of a task (must send the whole config, not a partial update).
 
 - **POST /tasks**
-  
+
   Add a new task, providing its configuration. Returns the id of the task.
   ::
 
@@ -144,7 +144,7 @@ An AngularJS/Foundation app is available to offer a nice GUI (see http://github.
     }
 
 - **GET /tasks**
-  
+
   Return a list of all configured tasks, along with their configuration.
   ::
 
@@ -154,7 +154,7 @@ An AngularJS/Foundation app is available to offer a nice GUI (see http://github.
     }
 
 - **GET /tags**
-  
+
   Return the list of all tags.
   ::
 
@@ -164,7 +164,7 @@ An AngularJS/Foundation app is available to offer a nice GUI (see http://github.
     ]
 
 - **GET /plugins**
-  
+
   Return the list of all plugins loaded on the node.
   ::
 
@@ -178,5 +178,5 @@ Dependencies
 ------------
 - gevent
 - Kazoo
-- pytz
+- dateutil
 - PyYAML

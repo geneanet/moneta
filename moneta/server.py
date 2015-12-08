@@ -7,11 +7,7 @@ from collections import OrderedDict
 import re
 import uuid
 
-from datetime import datetime
-
 import traceback
-
-import pytz
 
 import logging
 
