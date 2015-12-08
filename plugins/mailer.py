@@ -7,6 +7,7 @@ import logging
 from email.mime.text import MIMEText
 import smtplib
 from textwrap import dedent
+import pytz
 
 logger = logging.getLogger('moneta.plugins.mailer')
 
@@ -22,12 +23,27 @@ class MailerPlugin(object):
         self.registry = registry
         self.cluster = cluster
 
-        self.cluster.config.set_default('mailer', {
+        self.cluster.config.create_key('mailer', {
             'smtpserver': None,
-            'from': None
-        })
+            'sender': None,
+            'timezone': None
+        }, self.__validate_config)
 
         self.registry.register_hook('ReceivedReport', self.onReceivedReport)
+
+    @staticmethod
+    def __validate_config(config):
+        if not isinstance(config, dict):
+            raise TypeError('Value must be a dictionary')
+
+        if not set(config.keys()).issubset(set(['smtpserver', 'sender', 'timezone'])):
+            raise ValueError('Allowed keys are: smtpserver, sender and timezone')
+
+        if 'timezone' in config and config['timezone'] and config['timezone'] not in pytz.all_timezones:
+            raise ValueError('Timezone {0} not supported'.format(config['timezone']))
+
+        if not config['smtpserver'] or not config['sender']:
+            raise ValueError('Keys smtpserver and sender must be specified')
 
     def onReceivedReport(self, report):
         """Send a report by email"""

@@ -26,7 +26,7 @@ class ElasticSearchPlugin(object):
         self.registry = registry
         self.cluster = cluster
 
-        self.cluster.config.set_default('elasticsearch', {
+        self.cluster.config.create_key('elasticsearch', {
             'url': None,
             'index': None,
             'dateformat': None

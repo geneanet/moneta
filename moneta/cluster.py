@@ -30,8 +30,8 @@ class MonetaCluster(object):
         self.leader = None
 
         self.config = MonetaClusterConfig(self)
-        self.config.set_default('tasks', {})
-        self.config.set_default('tick', 60)
+        self.config.create_key('tasks', {})
+        self.config.create_key('tick', 60)
 
         self.electionticket = None
         self.pools_watchers = {}

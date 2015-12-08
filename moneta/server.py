@@ -164,8 +164,11 @@ class MonetaServer(HTTPServer):
                 return HTTPReply(code = 404)
 
         elif request.method == "PUT":
-            self.cluster.config.set(name, json.loads(request.body))
-            return HTTPReply(code = 204)
+            try:
+                self.cluster.config.set(name, json.loads(request.body))
+                return HTTPReply(code = 204)
+            except (ValueError, TypeError) as error:
+                return HTTPReply(code = 400, message = str(error))
 
         else:
             return HTTPReply(code = 405)
