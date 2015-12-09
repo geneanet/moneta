@@ -38,17 +38,39 @@ class MonetaServer(HTTPServer):
 
         self.routes = OrderedDict()
 
-        self.routes['/cluster/pools'] = self.handle_cluster_pools
-        self.routes['/cluster/status'] = self.handle_cluster_status
-        self.routes['/cluster/config/.+'] = self.handle_cluster_config
-        self.routes['/node/[^/]+/.+'] = self.handle_node
-        self.routes['/status'] = self.handle_status
-        self.routes['/tasks/[0-9a-z]+/report'] = self.handle_task_report
-        self.routes['/tasks/[0-9a-z]+/(en|dis)able'] = self.handle_task_enable
-        self.routes['/tasks/[0-9a-z]+'] = self.handle_task
-        self.routes['/tasks'] = self.handle_tasks
-        self.routes['/tags'] = self.handle_tags
-        self.routes['/plugins'] = self.handle_plugins
+        self.register_route('/cluster/pools', self.handle_cluster_pools, {'GET'})
+        self.register_route('/cluster/status', self.handle_cluster_status, {'GET'})
+        self.register_route('/cluster/config/.+', self.handle_cluster_config, {'GET', 'PUT'})
+        self.register_route('/node/[^/]+/.+', self.handle_node, {'GET', 'POST', 'PUT', 'DELETE', 'EXECUTE'})
+        self.register_route('/status', self.handle_status, {'GET'})
+        self.register_route('/tasks/[0-9a-z]+/report', self.handle_task_report, {'POST'})
+        self.register_route('/tasks/[0-9a-z]+/(en|dis)able', self.handle_task_enable, {'POST'})
+        self.register_route('/tasks/[0-9a-z]+', self.handle_task, {'GET', 'PUT', 'DELETE', 'EXECUTE'})
+        self.register_route('/tasks', self.handle_tasks, {'GET', 'POST', 'DELETE'})
+        self.register_route('/tags', self.handle_tags, {'GET'})
+        self.register_route('/plugins', self.handle_plugins, {'GET'})
+
+    def register_route(self, route, controller, methods = "GET"):
+        if not hasattr(controller, '__call__'):
+            raise TypeError("Controller must be callable")
+
+        if isinstance(methods, (str, unicode)):
+            methods = { methods }
+
+        if not isinstance(methods, set):
+            raise TypeError('Methods must be a string or a set')
+
+        try:
+            regex = re.compile("^%s$" % route)
+        except Exception as e:
+            raise ValueError('Unable to compile regex for route {0}'.format(route))
+
+        for method in methods:
+            logger.debug("Registering method %s for route %s", method, route)
+            self.routes[(route, method)] = {
+                'controller': controller,
+                'regex':  regex
+            }
 
     def handle_request(self, socket, address, request):
         """Handle a request, finding the right route"""
@@ -65,11 +87,15 @@ class MonetaServer(HTTPServer):
         try:
             reply = HTTPReply(code = 404)
 
-            for route in self.routes:
-                match = re.match("^%s$" % route, request.uri_path)
+            for ((route, method), routeconfig) in self.routes.iteritems():
+                match = routeconfig['regex'].match(request.uri_path)
                 if match:
-                    reply = self.routes[route](request)
-                    break
+                    if request.method == method:
+                        logger.debug('Matched route %s method %s', route, method)
+                        reply = routeconfig['controller'](request)
+                        break
+                    else:
+                        reply = HTTPReply(code = 405)
 
         except BaseException:
             logger.exception("Caught exception while handling request %s %s", request.method, request.uri)
@@ -89,10 +115,7 @@ class MonetaServer(HTTPServer):
             'leader': self.cluster.leader
         }
 
-        if request.method == "GET":
-            return HTTPReply(body = json.dumps(status), headers = headers)
-        else:
-            return HTTPReply(code = 405)
+        return HTTPReply(body = json.dumps(status), headers = headers)
 
     def handle_node(self, request):
         """Handle requests to /node/[^/]+/.+"""
@@ -129,21 +152,14 @@ class MonetaServer(HTTPServer):
             'scheduler_running': self.cluster.scheduler.running
         }
 
-        if request.method == "GET":
-            return HTTPReply(body = json.dumps(status), headers = headers)
-        else:
-            return HTTPReply(code = 405)
+        return HTTPReply(body = json.dumps(status), headers = headers)
 
     def handle_cluster_pools(self, request):
         """Handle requests to /cluster/pools"""
 
         headers = { 'Content-Type': 'application/javascript' }
 
-        if request.method == "GET":
-            return HTTPReply(body = json.dumps(self.cluster.pools), headers = headers)
-
-        else:
-            return HTTPReply(code = 405)
+        return HTTPReply(body = json.dumps(self.cluster.pools), headers = headers)
 
     def handle_cluster_config(self, request):
         """Handle requests to /cluster/config/.+"""
@@ -166,39 +182,28 @@ class MonetaServer(HTTPServer):
             except (ValueError, TypeError) as error:
                 return HTTPReply(code = 400, message = str(error))
 
-        else:
-            return HTTPReply(code = 405)
-
     def handle_tags(self, request):
         """Handle requests to /tags"""
 
         headers = { 'Content-Type': 'application/javascript' }
 
-        if request.method == "GET":
-            tags = []
+        tags = []
 
-            for task in self.cluster.config.get('tasks').itervalues():
-                if 'tags' in task:
-                    tags += task['tags']
+        for task in self.cluster.config.get('tasks').itervalues():
+            if 'tags' in task:
+                tags += task['tags']
 
-            tags = list(set(tags))
+        tags = list(set(tags))
 
-            return HTTPReply(code = 200, body = json.dumps(tags), headers = headers)
-
-        else:
-            return HTTPReply(code = 405)
+        return HTTPReply(code = 200, body = json.dumps(tags), headers = headers)
 
     def handle_plugins(self, request):
         """Handle requests to /plugins"""
 
         headers = { 'Content-Type': 'application/javascript' }
 
-        if request.method == "GET":
-            plugins = get_plugin_registry().get_plugins()
-            return HTTPReply(code = 200, body = json.dumps(plugins), headers = headers)
-
-        else:
-            return HTTPReply(code = 405)
+        plugins = get_plugin_registry().get_plugins()
+        return HTTPReply(code = 200, body = json.dumps(plugins), headers = headers)
 
     def handle_tasks(self, request):
         """Handle requests to /tasks"""
@@ -213,7 +218,7 @@ class MonetaServer(HTTPServer):
 
             return HTTPReply(code = 200, body = json.dumps(tasks), headers = headers)
 
-        if request.method == "DELETE":
+        elif request.method == "DELETE":
             self.cluster.config.set('tasks', {})
             return HTTPReply(code = 204, body = json.dumps({"deleted": True}))
 
@@ -224,9 +229,6 @@ class MonetaServer(HTTPServer):
             self.cluster.config.set('tasks', tasks)
 
             return HTTPReply(code = 201, body = json.dumps({"id": task, "created": True}))
-
-        else:
-            return HTTPReply(code = 405)
 
     def handle_task(self, request):
         """Handle requests to /tasks/[0-9a-z]+"""
@@ -273,9 +275,6 @@ class MonetaServer(HTTPServer):
             except ExecutionDisabled:
                 return HTTPReply(code = 503, body = json.dumps({"id": task, "executed": False}))
 
-        else:
-            return HTTPReply(code = 405)
-
     def handle_task_enable(self, request):
         """Handle requests to /tasks/[0-9a-z]+/(en|dis)able"""
 
@@ -287,22 +286,18 @@ class MonetaServer(HTTPServer):
 
         tasks = self.cluster.config.get('tasks')
 
-        if request.method == "POST":
-            if task in tasks:
-                code = 204
+        if task in tasks:
+            code = 204
 
-                tasks[task]['enabled'] = enabled
-                self.cluster.config.set('tasks', tasks)
+            tasks[task]['enabled'] = enabled
+            self.cluster.config.set('tasks', tasks)
 
-                headers = { 'Content-Type': 'application/javascript' }
-                body = json.dumps({"id": task, "updated": True})
+            headers = { 'Content-Type': 'application/javascript' }
+            body = json.dumps({"id": task, "updated": True})
 
-                return HTTPReply(code = code, body = body, headers = headers)
-            else:
-                return HTTPReply(code = 404)
-
+            return HTTPReply(code = code, body = body, headers = headers)
         else:
-            return HTTPReply(code = 405)
+            return HTTPReply(code = 404)
 
     def handle_task_report(self, request):
         """Handle requests to /tasks/[0-9a-z]+/report"""
@@ -310,14 +305,10 @@ class MonetaServer(HTTPServer):
         match = re.match('/tasks/([0-9a-z]+)/report', request.uri_path)
         task = match.group(1)
 
-        if request.method == "POST":
-            report = json.loads(request.body)
-            logger.info("Received execution report for task %s", task)
-            logger.debug("Execution report for task %s: %s", task, repr(report))
+        report = json.loads(request.body)
+        logger.info("Received execution report for task %s", task)
+        logger.debug("Execution report for task %s: %s", task, repr(report))
 
-            get_plugin_registry().call_hook('ReceivedReport', report)
+        get_plugin_registry().call_hook('ReceivedReport', report)
 
-            return HTTPReply(code = 200)
-
-        else:
-            return HTTPReply(code = 405)
+        return HTTPReply(code = 200)

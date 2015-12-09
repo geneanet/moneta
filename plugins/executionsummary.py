@@ -23,8 +23,8 @@ class ExecutionSummaryPlugin(object):
         self.server = server
 
         self.registry.register_hook('ReceivedReport', self.onReceivedReport)
-        self.server.routes['/tasks/[0-9a-z]+/executionsummary'] = self.handleTaskRequest
-        self.server.routes['/executionsummary'] = self.handleTasksRequest
+        self.server.register_route('/tasks/[0-9a-z]+/executionsummary', self.handleTaskRequest, {'GET'})
+        self.server.register_route('/executionsummary', self.handleTasksRequest, {'GET'})
 
     def handleTaskRequest(self, request):
         """Handle requests to /tasks/[0-9a-z]+/executionsummary"""
@@ -34,36 +34,28 @@ class ExecutionSummaryPlugin(object):
 
         headers = { 'Content-Type': 'application/javascript' }
 
-        if request.method == "GET":
-            try:
-                (summary, stat) = self.cluster.zk.get('/moneta/executionsummary/%s' % (task))
-            except NoNodeError:
-                summary = {}
+        try:
+            (summary, stat) = self.cluster.zk.get('/moneta/executionsummary/%s' % (task))
+        except NoNodeError:
+            summary = {}
 
-            return HTTPReply(code = 200, body = summary, headers = headers)
-
-        else:
-            return HTTPReply(code = 405)
+        return HTTPReply(code = 200, body = summary, headers = headers)
 
     def handleTasksRequest(self, request):
         """Handle requests to /executionsummary"""
         headers = { 'Content-Type': 'application/javascript' }
 
-        if request.method == "GET":
-            tasks = {}
+        tasks = {}
 
-            for task in self.cluster.config.get('tasks'):
-                try:
-                    (summary, stat) = self.cluster.zk.get('/moneta/executionsummary/%s' % (task))
-                    summary = json.loads(summary)
-                    tasks[task] = summary
-                except NoNodeError:
-                    pass
+        for task in self.cluster.config.get('tasks'):
+            try:
+                (summary, stat) = self.cluster.zk.get('/moneta/executionsummary/%s' % (task))
+                summary = json.loads(summary)
+                tasks[task] = summary
+            except NoNodeError:
+                pass
 
-            return HTTPReply(code = 200, body = json.dumps(tasks), headers = headers)
-
-        else:
-            return HTTPReply(code = 405)
+        return HTTPReply(code = 200, body = json.dumps(tasks), headers = headers)
 
     def onReceivedReport(self, report):
         try:
