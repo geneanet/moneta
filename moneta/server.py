@@ -230,7 +230,12 @@ class MonetaServer(HTTPServer):
             return HTTPReply(code = 200, body = json.dumps(tasks), headers = headers)
 
         elif request.method == "DELETE":
+            oldtasks  = self.cluster.config.get('tasks')
             self.cluster.config.set('tasks', {})
+
+            for (task, taskconfig) in oldtasks.iteritems():
+                get_plugin_registry().call_hook('TaskDeleted', task, taskconfig)
+
             return HTTPReply(code = 204, body = json.dumps({"deleted": True}))
 
         elif request.method == "POST":
@@ -238,6 +243,8 @@ class MonetaServer(HTTPServer):
             tasks = self.cluster.config.get('tasks')
             tasks[task] = json.loads(request.body)
             self.cluster.config.set('tasks', tasks)
+
+            get_plugin_registry().call_hook('TaskCreated', task, tasks[task])
 
             return HTTPReply(code = 201, body = json.dumps({"id": task, "created": True}))
 
@@ -265,16 +272,25 @@ class MonetaServer(HTTPServer):
                 code = 201
                 body = json.dumps({"id": task, "created": True})
 
-            tasks[task] = json.loads(request.body)
+            new = json.loads(request.body)
+            old = tasks[task]
+
+            tasks[task] = new
 
             self.cluster.config.set('tasks', tasks)
+
+            get_plugin_registry().call_hook('TaskUpdated', task, old, new)
 
             return HTTPReply(code = code, body = body)
 
         elif request.method == "DELETE":
             if task in tasks:
+                old = tasks[task]
                 del tasks[task]
                 self.cluster.config.set('tasks', tasks)
+
+                get_plugin_registry().call_hook('TaskDeleted', task, old)
+
                 return HTTPReply(code = 204, body = json.dumps({"id": task, "deleted": True}))
             else:
                 return HTTPReply(code = 404)
