@@ -30,9 +30,20 @@ class ElasticSearchPlugin(object):
             'url': None,
             'index': None,
             'dateformat': None
-        })
+        }, self.__validate_config)
 
         self.registry.register_hook('ReceivedReport', self.onReceivedReport)
+
+    @staticmethod
+    def __validate_config(config):
+        if not isinstance(config, dict):
+            raise TypeError('Value must be a dictionary')
+
+        if not set(config.keys()).issubset(set(['url', 'index', 'dateformat'])):
+            raise ValueError('Allowed keys are: url, index and dateformat')
+
+        if not config['url'] or not config['index']:
+            raise ValueError('Keys url and index must be specified')
 
     def get_elasticsearch_config(self):
         esconfig = self.cluster.config.get('elasticsearch')
@@ -45,7 +56,7 @@ class ElasticSearchPlugin(object):
         if path[-1] != '/':
             path += '/'
 
-        if esconfig['dateformat']:
+        if 'dateformat' in esconfig and esconfig['dateformat']:
             date = datetime.utcnow().replace(tzinfo = dateutil.tz.tzutc()).strftime(esconfig['dateformat'])
         else:
             date = ""
