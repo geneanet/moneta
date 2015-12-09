@@ -41,7 +41,7 @@ class MonetaServer(HTTPServer):
 
         self.register_route('/cluster/pools', self.handle_cluster_pools, {'GET'})
         self.register_route('/cluster/status', self.handle_cluster_status, {'GET'})
-        self.register_route('/cluster/config/.+', self.handle_cluster_config, {'GET', 'PUT'})
+        self.register_route('/cluster/config/.+', self.handle_cluster_config, {'GET', 'PUT', 'DELETE'})
         self.register_route('/node/[^/]+/.+', self.handle_node, {'GET', 'POST', 'PUT', 'DELETE', 'EXECUTE'})
         self.register_route('/status', self.handle_status, {'GET'})
         self.register_route('/tasks/[0-9a-z]+/report', self.handle_task_report, {'POST'})
@@ -174,7 +174,7 @@ class MonetaServer(HTTPServer):
         if request.method == "GET":
             try:
                 return HTTPReply(body = json.dumps(self.cluster.config.get(name)), headers = headers)
-            except NameError:
+            except KeyError:
                 return HTTPReply(code = 404)
 
         elif request.method == "PUT":
@@ -183,6 +183,15 @@ class MonetaServer(HTTPServer):
                 return HTTPReply(code = 204)
             except (ValueError, TypeError) as error:
                 return HTTPReply(code = 400, message = str(error))
+            except KeyError:
+                return HTTPReply(code = 404)
+
+        elif request.method == "DELETE":
+            try:
+                self.cluster.config.clear(name)
+                return HTTPReply(code = 204)
+            except KeyError:
+                return HTTPReply(code = 404)
 
     def handle_tags(self, request):
         """Handle requests to /tags"""

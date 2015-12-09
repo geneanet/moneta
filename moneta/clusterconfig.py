@@ -53,3 +53,11 @@ class MonetaClusterConfig(object):
                 raise TypeError('Invalid type for property {0} (error: {1})'.format(key, str(err)))
         else:
             raise KeyError('Invalid property {0}.'.format(key))
+
+    def clear(self, key):
+        """ Clear a config key """
+        if key in self.keys:
+            del self.config[key]
+            self.cluster.update_config(self.config)
+        else:
+            raise KeyError('Invalid property {0}.'.format(key))
