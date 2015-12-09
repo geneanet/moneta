@@ -11,13 +11,18 @@ import re
 logger = logging.getLogger('moneta.plugins.executionsummary')
 
 def getDependencies():
+    """ Return modules that need to be injected to the plugin constructor """
     return ['PluginRegistry', 'Cluster', 'Server']
 
 def init(config, registry, cluster, server):
+    """ Instanciate the plugin """
     return ExecutionSummaryPlugin(config, registry, cluster, server)
 
 class ExecutionSummaryPlugin(object):
+    """ ExecutionSummary Plugin """
+
     def __init__(self, config, registry, cluster, server):
+        """ Constructor """
         self.registry = registry
         self.cluster = cluster
         self.server = server
@@ -58,6 +63,7 @@ class ExecutionSummaryPlugin(object):
         return HTTPReply(code = 200, body = json.dumps(tasks), headers = headers)
 
     def onReceivedReport(self, report):
+        """Update the execution summary in Zookeeper"""
         try:
             task = report['task']
             summary = {

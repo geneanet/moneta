@@ -26,6 +26,7 @@ class MonetaManager(object):
     """ Execute tasks, keeping log of what is running """
 
     def __init__(self, cluster):
+        """ Constructor """
         self.cluster = cluster
         self.running_processes = {}
         self.enabled = True
@@ -73,6 +74,7 @@ class MonetaManager(object):
         greenlet = Greenlet(self._execute_task, task)
 
         def handle_task_completion(greenlet, execid = execid):
+            """ Delete the greenlet from the list of running tasks """
             del self.running_processes[execid]
 
         greenlet.link(handle_task_completion)

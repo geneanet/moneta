@@ -9,6 +9,7 @@ class Schedule(object):
     """ Class representing a cron schedule """
 
     def __init__(self, month = None, week = None, dayofweek = None, dayofmonth = None, hour = None, minute = None):
+        """ Constructor """
         self.month = self.__expand(month, 0, 12)
         self.week = self.__expand(week, 0, 52)
         self.dayofweek = self.__expand(dayofweek, 0, 7)
@@ -115,4 +116,5 @@ class Schedule(object):
             return data
 
     def __repr__(self):
+        """ String representation of a schedule """
         return "Schedule(month = %s, week = %s, dayofweek = %s, dayofmonth = %s, hour = %s, minute = %s)" % (repr(self.month), repr(self.week), repr(self.dayofweek), repr(self.dayofmonth), repr(self.hour), repr(self.minute))

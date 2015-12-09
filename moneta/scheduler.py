@@ -18,6 +18,7 @@ class MonetaScheduler(object):
     """ Schedule tasks to be run on cluster nodes """
 
     def __init__(self, cluster):
+        """ Constructor """
         self.cluster = cluster
         self.running = False
 
@@ -48,7 +49,7 @@ class MonetaScheduler(object):
         self.greenlet = gevent.spawn_later(self.cluster.config.get('tick'), self.ticker)
 
     def tick(self):
-        """ Every tick, run jobs which had to be started between now and the last tick """
+        """ Run jobs which had to be started between now and the last tick """
 
         try:
             this_tick = time.time()

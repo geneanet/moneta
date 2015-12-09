@@ -31,6 +31,7 @@ class MonetaServer(HTTPServer):
     ]
 
     def __init__(self, cluster, manager, address):
+        """ Constructor """
         HTTPServer.__init__(self, parse_host_port(address))
 
         self.cluster = cluster
@@ -51,6 +52,7 @@ class MonetaServer(HTTPServer):
         self.register_route('/plugins', self.handle_plugins, {'GET'})
 
     def register_route(self, route, controller, methods = "GET"):
+        """ Register a function to generate response for an HTTP query """
         if not hasattr(controller, '__call__'):
             raise TypeError("Controller must be callable")
 
@@ -73,7 +75,7 @@ class MonetaServer(HTTPServer):
             }
 
     def handle_request(self, socket, address, request):
-        """Handle a request, finding the right route"""
+        """Handle a HTTP request, finding the right route"""
 
         # Fold multiple / in URL
         request.uri_path = re.sub(r'/+', r'/', request.uri_path)

@@ -15,13 +15,18 @@ from moneta.http.http import HTTPRequest
 logger = logging.getLogger('moneta.plugins.elasticsearch')
 
 def getDependencies():
+    """ Return modules that need to be injected to the plugin constructor """
     return ['PluginRegistry', 'Cluster']
 
 def init(config, registry, cluster):
+    """ Instanciate the plugin """
     return ElasticSearchPlugin(config, registry, cluster)
 
 class ElasticSearchPlugin(object):
+    """ ElasticSearch Plugin """
+
     def __init__(self, config, registry, cluster):
+        """ Constructor """
         self.config = config
         self.registry = registry
         self.cluster = cluster
@@ -36,6 +41,7 @@ class ElasticSearchPlugin(object):
 
     @staticmethod
     def __validate_config(config):
+        """ Validate ES plugin configuration """
         if not isinstance(config, dict):
             raise TypeError('Value must be a dictionary')
 
@@ -46,6 +52,7 @@ class ElasticSearchPlugin(object):
             raise ValueError('Keys url and index must be specified')
 
     def get_elasticsearch_config(self):
+        """ Return a tuple (address, path, index) used to query the ES server """
         esconfig = self.cluster.config.get('elasticsearch')
 
         url = urlparse(esconfig['url'])
@@ -68,7 +75,6 @@ class ElasticSearchPlugin(object):
 
     def onReceivedReport(self, report):
         """Store the report in ElasticSearch"""
-
         try:
             report = dict(report)
 

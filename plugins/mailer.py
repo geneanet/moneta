@@ -13,13 +13,18 @@ import dateutil.parser
 logger = logging.getLogger('moneta.plugins.mailer')
 
 def getDependencies():
+    """ Return modules that need to be injected to the plugin constructor """
     return ['PluginRegistry', 'Cluster']
 
 def init(config, registry, cluster):
+    """ Instanciate the plugin """
     return MailerPlugin(config, registry, cluster)
 
 class MailerPlugin(object):
+    """ Mailer Plugin """
+
     def __init__(self, config, registry, cluster):
+        """ Constructor """
         self.config = config
         self.registry = registry
         self.cluster = cluster
@@ -34,6 +39,7 @@ class MailerPlugin(object):
 
     @staticmethod
     def __validate_config(config):
+        """ Validate plugin the configuration """
         if not isinstance(config, dict):
             raise TypeError('Value must be a dictionary')
 

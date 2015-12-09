@@ -18,6 +18,7 @@ from moneta.pluginregistry import get_plugin_registry
 logger = logging.getLogger('moneta')
 
 def run():
+    """ Run Moneta """
     parser = argparse.ArgumentParser()
     parser.add_argument('--listen', nargs='?', default=None, help='Listen host:port')
     parser.add_argument('--zookeeper', nargs='+', default=None, help='Zookeeper hosts (list of host:port items)')

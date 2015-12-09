@@ -9,13 +9,18 @@ import yaml
 logger = logging.getLogger('moneta.plugins.configbackup')
 
 def getDependencies():
+    """ Return modules that need to be injected to the plugin constructor """
     return ['PluginRegistry']
 
 def init(config, registry):
+    """ Instanciate the plugin """
     return ConfigBackupPlugin(config, registry)
 
 class ConfigBackupPlugin(object):
+    """ ConfigBackup Plugin """
+
     def __init__(self, config, registry):
+        """ Constructor """
         if 'path' in config:
             self.path = config['path']
         else:
@@ -34,6 +39,7 @@ class ConfigBackupPlugin(object):
         self.registry.register_hook('ConfigUpdated', self.onConfigUpdated)
 
     def onConfigUpdated(self, config):
+        """ Save the configuration to disk """
         try:
             with open(self.path, 'w') as f:
                 if self.format == 'json':

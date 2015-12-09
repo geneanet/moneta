@@ -18,6 +18,7 @@ logger = logging.getLogger('moneta.cluster')
 
 class MonetaCluster(object):
     def __init__(self, nodename, addr, zkhosts, handler=SequentialGeventHandler(), pools = ["default"], contend_for_lead = True):
+        """ Constructor """
         self.scheduler = MonetaScheduler(self)
 
         self.nodename = nodename
@@ -51,12 +52,15 @@ class MonetaCluster(object):
         self.zk.DataWatch("/moneta/config", self._handle_config_update)
 
     def connect(self):
+        """ Connect to the zookeeper cluster """
         self.zk.start()
 
     def disconnect(self):
+        """ Connect to the zookeeper cluster """
         self.zk.stop()
 
     def start(self):
+        """ Start the Moneta cluster client: join cluster, pools, contend for lead if necessary """
         try:
             self.join_cluster()
             self.join_pools()
@@ -72,6 +76,7 @@ class MonetaCluster(object):
 
 
     def stop(self):
+        """ Stop the Moneta cluster client: quit pools, leader election, cluster """
         try:
             if self.is_leader:
                 self.scheduler.stop()
@@ -84,6 +89,7 @@ class MonetaCluster(object):
             exit(1)
 
     def join_cluster(self):
+        """ Join Moneta cluster: register node, set up config and pools change callbacks """
         if self.cluster_joined:
             return
 
@@ -118,6 +124,7 @@ class MonetaCluster(object):
             pass
 
     def quit_cluster(self):
+        """ Quit moneta cluster """
         if not self.cluster_joined:
             return
 
@@ -129,6 +136,7 @@ class MonetaCluster(object):
         logger.info("Quitted cluster")
 
     def join_pools(self):
+        """ Join pools """
         if self.pools_joined:
             return
 
@@ -147,6 +155,7 @@ class MonetaCluster(object):
             raise
 
     def quit_pools(self):
+        """ Quit pools """
         if not self.pools_joined:
             return
 
@@ -158,6 +167,7 @@ class MonetaCluster(object):
         self.pools_joined = False
 
     def join_leader_election(self):
+        """ Contend for lead """
         if self.contending_for_lead:
             return
 
@@ -167,6 +177,7 @@ class MonetaCluster(object):
         self.contending_for_lead = True
 
     def quit_leader_election(self):
+        """ Quit leader election """
         if not self.contending_for_lead:
             return
 
@@ -179,6 +190,7 @@ class MonetaCluster(object):
         self.contending_for_lead = True
 
     def get_last_tick(self):
+        """ Return the last time the scheduler was run on the cluster """
         try:
             (tick, stat) = self.zk.get('/moneta/last_tick')
             return float(tick)
@@ -186,15 +198,18 @@ class MonetaCluster(object):
             return None
 
     def update_last_tick(self, tick):
+        """ Update the last time the scheduler was run on the cluster """
         try:
             self.zk.set('/moneta/last_tick', "%f" % tick)
         except NoNodeError:
             self.zk.create('/moneta/last_tick', "%f" % tick, makepath = True)
 
     def update_config(self, config):
+        """ Update the cluster shared configuration """
         self.zk.set('/moneta/config', json.dumps(config))
 
     def _handle_connection_change(self, state):
+        """ Handle Zookeeper connection events """
         if state == KazooState.LOST:
             logger.error("Zookeeper connection lost")
 
@@ -217,6 +232,7 @@ class MonetaCluster(object):
             gevent.spawn(self.start)
 
     def _handle_election_update(self, children):
+        """ Handle leader election events (node joined/quitted the election) """
         children.sort()
 
         nodes = [self.zk.get("/moneta/election/%s" % child)[0] for child in children]
@@ -237,12 +253,14 @@ class MonetaCluster(object):
             self.scheduler.run()
 
     def _handle_config_update(self, data, stat):
+        """ Handle the shared cluster configuration update """
         logger.debug("Cluster config update")
         logger.debug("Cluster config : %s", data)
         self.config.set_config(json.loads(data))
         get_plugin_registry().call_hook('ConfigUpdated', self.config)
 
     def _handle_nodes_update(self, children):
+        """ Handle cluster nodes update (a node joined/quitted the cluster) """
         nodes = {}
 
         for child in children:
@@ -256,6 +274,7 @@ class MonetaCluster(object):
         logger.info("Cluster change : %s", self.nodes)
 
     def _handle_pools_update(self, pools):
+        """ Handle cluster pools update (a node joined/quitted a pool) """
         pools_watchers = {}
 
         for pool in pools:
