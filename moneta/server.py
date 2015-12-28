@@ -316,8 +316,11 @@ class MonetaServer(HTTPServer):
         if task in tasks:
             code = 204
 
+            old = tasks[task]
             tasks[task]['enabled'] = enabled
             self.cluster.config.set('tasks', tasks)
+
+            get_plugin_registry().call_hook('TaskUpdated', task, old, tasks[task])
 
             headers = { 'Content-Type': 'application/javascript' }
             body = json.dumps({"id": task, "updated": True})
