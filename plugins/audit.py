@@ -9,6 +9,7 @@ import json
 import re
 from urlparse import urlparse
 from datetime import datetime
+from dateutil import rrule
 
 from moneta.http.client import HTTPClient
 from moneta.http.http import HTTPRequest
@@ -60,8 +61,13 @@ class AuditPlugin(object):
         if not config['url'] or not config['index']:
             raise ValueError('Keys url and index must be specified')
 
-    def __get_elasticsearch_config(self):
+    def __get_elasticsearch_config(self, dtfrom=None, dtuntil=None):
         """ Return a tuple (address, path, index) used to query the ES server """
+        if not dtfrom:
+            dtfrom = datetime.utcnow().replace(tzinfo = dateutil.tz.tzutc())
+        if not dtuntil:
+            dtuntil = dtfrom
+
         esconfig = self.cluster.config.get('audit')
 
         url = urlparse(esconfig['url'])
@@ -73,12 +79,11 @@ class AuditPlugin(object):
             path += '/'
 
         if 'dateformat' in esconfig and esconfig['dateformat']:
-            date = datetime.utcnow().replace(tzinfo = dateutil.tz.tzutc()).strftime(esconfig['dateformat'])
+            dates = list(rrule.rrule(rrule.HOURLY, dtstart=dtfrom, until=dtuntil))
+            indices = set([ esconfig['index'].replace('${date}', date.strftime(esconfig['dateformat'])) for date in dates ])
+            index = ",".join(indices)
         else:
-            date = ""
-
-        index = esconfig['index']
-        index = index.replace('${date}', date)
+            index = esconfig['index']
 
         return (addr, path, index)
 
