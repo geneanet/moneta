@@ -11,6 +11,7 @@ import logging
 from moneta.schedule import Schedule
 from moneta.http.http import HTTPRequest, parse_host_port
 from moneta.http.client import HTTPClient
+from moneta.pluginregistry import get_plugin_registry
 
 logger = logging.getLogger('moneta.scheduler')
 
@@ -118,8 +119,12 @@ class MonetaScheduler(object):
                     client = HTTPClient(addr)
                     logger.info("Running task %s on node %s", task, node)
                     ret = client.request(HTTPRequest(uri = '/tasks/%s' % task, method = 'EXECUTE'))
+
+                    get_plugin_registry().call_hook('TaskExecuted', task, node, ret.code == 200, ret.body)
+
                     if ret.code != 200:
                         logger.error ("Node %s answered %d when asked to execute task %s !", node, ret.code, task)
+
                 except Exception:
                     logger.exception("An exception occurred when trying to run task %s on node %s.", task, node)
 
