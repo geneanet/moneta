@@ -2,7 +2,7 @@ plugins:
     path: plugins
     load:
         - mailer
-        - elasticsearch
+        - audit
         - configbackup
         - executionsummary
     config:
