@@ -68,6 +68,14 @@ class AuditPlugin(object):
         if not dtuntil:
             dtuntil = dtfrom
 
+        if not isinstance(dtfrom, datetime):
+            raise TypeError('dtfrom must be a datetime instance')
+        if not isinstance(dtuntil, datetime):
+            raise TypeError('dtuntil must be a datetime instance')
+
+        if dtfrom > dtuntil:
+            raise ValueError('Incorrect boundaries (from > until)')
+
         esconfig = self.cluster.config.get('audit')
 
         url = urlparse(esconfig['url'])
@@ -84,6 +92,9 @@ class AuditPlugin(object):
             index = ",".join(indices)
         else:
             index = esconfig['index']
+
+        if index == '':
+            raise ValueError('Index name can not be empty')
 
         return (addr, path, index)
 
