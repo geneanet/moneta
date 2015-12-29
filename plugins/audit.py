@@ -192,6 +192,54 @@ class AuditPlugin(object):
         match = re.match('/tasks/([0-9a-z]+)/audit', request.uri_path)
         task = match.group(1)
 
+        if 'from' in request.args:
+            dtfrom = dateutil.parser.parse(request.args['from'])
+        else:
+            dtfrom = datetime.utcnow().replace(tzinfo = dateutil.tz.tzutc())  - dateutil.relativedelta.relativedelta(days=1)
+
+        if 'until' in request.args:
+            dtuntil = dateutil.parser.parse(request.args['until'])
+        else:
+            dtuntil = datetime.utcnow().replace(tzinfo = dateutil.tz.tzutc())
+
+        (addr, path, index) = self.__get_elasticsearch_config(dtfrom=dtfrom, dtuntil=dtuntil)
+
+        uri = "%s%s/_search?ignore_unavailable=true&allow_no_indices=true" % (path, index)
+        query = json.dumps({
+            "query": {
+                "bool": { "must": [
+                    { "term": { "task": { "value": task } } },
+                    { "range": { "@timestamp": { "gte": dtfrom.isoformat(), "lte": dtuntil.isoformat()} } }
+                ] }
+            },
+            "sort": [
+                { '@timestamp': "asc" }
+            ]
+        })
+
+        logger.debug("ES URL: %s%s/_search", path, index)
+        logger.debug("ES Query:\n%s", query)
+
+        client = HTTPClient(addr)
+        answer = client.request(HTTPRequest(uri = uri, method = 'GET', body = query))
+
         headers = { 'Content-Type': 'application/javascript' }
 
-        return HTTPReply(code = 200, body = "", headers = headers)
+        if answer.code == 200:
+            data = json.loads(answer.body)
+            hits = data['hits']['hits'] if 'hits' in data and 'hits' in data['hits'] else []
+            records = []
+            for hit in hits:
+                record = hit['_source'].copy()
+                record.update({
+                    '@type': hit['_type']
+                })
+                records.append(record)
+            return HTTPReply(code=200, body=json.dumps(records), headers=headers)
+        else:
+            data = {
+                "error": True,
+                'message': 'ES query failed with error code %d' % answer.code,
+                'es_answer': answer.body
+            }
+            return HTTPReply(code=500, body=json.dumps(data), headers=headers)
