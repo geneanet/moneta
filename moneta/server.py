@@ -99,9 +99,9 @@ class MonetaServer(HTTPServer):
                     else:
                         reply = HTTPReply(code = 405)
 
-        except BaseException:
+        except BaseException, e:
             logger.exception("Caught exception while handling request %s %s", request.method, request.uri)
-            reply = HTTPReply(code = 500, body = json.dumps({"error": True, "message": traceback.format_exc()}))
+            reply = HTTPReply(code = 500, body = json.dumps({"error": True, "message": repr(e), "traceback": traceback.format_exc()}))
 
         reply.set_header("Access-Control-Allow-Origin", "*")
 
