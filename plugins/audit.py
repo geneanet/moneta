@@ -235,7 +235,13 @@ class AuditPlugin(object):
                     '@type': hit['_type']
                 })
                 records.append(record)
-            return HTTPReply(code=200, body=json.dumps(records), headers=headers)
+            answer = {
+                'from': dtfrom.isoformat(),
+                'until': dtuntil.isoformat(),
+                'task': task,
+                'records': records
+            }
+            return HTTPReply(code=200, body=json.dumps(answer), headers=headers)
         else:
             data = {
                 "error": True,
