@@ -47,7 +47,7 @@ class AuditPlugin(object):
         self.registry.register_hook('TaskExecuted', self.onTaskExecuted)
         self.registry.register_hook('ReceivedReport', self.onReceivedReport)
 
-        self.server.register_route('/tasks/[0-9a-z]+/audit', self.handleTaskRequest, {'GET'})
+        self.server.register_route('/tasks/[0-9a-z]+/auditlog', self.handleTaskRequest, {'GET'})
 
     @staticmethod
     def __validate_config(config):
