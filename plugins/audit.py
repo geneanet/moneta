@@ -213,7 +213,7 @@ class AuditPlugin(object):
                 ] }
             },
             "sort": [
-                { '@timestamp': "asc" }
+                { '@timestamp': "desc" }
             ]
         })
 
