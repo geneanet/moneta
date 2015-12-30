@@ -202,9 +202,14 @@ class AuditPlugin(object):
         else:
             dtuntil = datetime.utcnow().replace(tzinfo = dateutil.tz.tzutc())
 
+        if 'limit' in request.args:
+            limit = int(request.args['limit'])
+        else:
+            limit = 100
+
         (addr, path, index) = self.__get_elasticsearch_config(dtfrom=dtfrom, dtuntil=dtuntil)
 
-        uri = "%s%s/_search?ignore_unavailable=true&allow_no_indices=true" % (path, index)
+        uri = "%s%s/_search?ignore_unavailable=true&allow_no_indices=true&size=%d" % (path, index, limit)
         query = json.dumps({
             "query": {
                 "bool": { "must": [
