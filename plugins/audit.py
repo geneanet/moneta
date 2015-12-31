@@ -207,9 +207,14 @@ class AuditPlugin(object):
         else:
             limit = 100
 
+        if 'offset' in request.args:
+            offset = int(request.args['offset'])
+        else:
+            offset = 0
+
         (addr, path, index) = self.__get_elasticsearch_config(dtfrom=dtfrom, dtuntil=dtuntil)
 
-        uri = "%s%s/_search?ignore_unavailable=true&allow_no_indices=true&size=%d" % (path, index, limit)
+        uri = "%s%s/_search?ignore_unavailable=true&allow_no_indices=true&size=%d&from=%d" % (path, index, limit, offset)
         query = json.dumps({
             "query": {
                 "bool": { "must": [
@@ -233,6 +238,7 @@ class AuditPlugin(object):
         if answer.code == 200:
             data = json.loads(answer.body)
             hits = data['hits']['hits'] if 'hits' in data and 'hits' in data['hits'] else []
+            count = data['hits']['total'] if 'hits' in data and 'total' in data['hits'] else 0
             records = []
             for hit in hits:
                 record = hit['_source'].copy()
@@ -244,6 +250,9 @@ class AuditPlugin(object):
                 'from': dtfrom.isoformat(),
                 'until': dtuntil.isoformat(),
                 'task': task,
+                'limit': limit,
+                'offset': offset,
+                'count': count,
                 'records': records
             }
             return HTTPReply(code=200, body=json.dumps(answer), headers=headers)
