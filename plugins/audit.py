@@ -47,7 +47,8 @@ class AuditPlugin(object):
         self.registry.register_hook('TaskExecuted', self.onTaskExecuted)
         self.registry.register_hook('ReceivedReport', self.onReceivedReport)
 
-        self.server.register_route('/tasks/[0-9a-z]+/auditlog', self.handleTaskRequest, {'GET'})
+        self.server.register_route('/auditlog', self.handleAuditLogRequest, {'GET'})
+        self.server.register_route('/tasks/[0-9a-z]+/auditlog', self.handleAuditLogRequest, {'GET'})
 
     @staticmethod
     def __validate_config(config):
@@ -186,11 +187,14 @@ class AuditPlugin(object):
         except Exception, e:
             logger.error('An error has been encountered while storing record in ElasticSearch (%s)', str(e))
 
-    def handleTaskRequest(self, request):
-        """Handle requests to /tasks/[0-9a-z]+/audit"""
+    def handleAuditLogRequest(self, request):
+        """Handle requests to /auditlog and /tasks/[0-9a-z]+/auditlog"""
 
-        match = re.match('/tasks/([0-9a-z]+)/audit', request.uri_path)
-        task = match.group(1)
+        match = re.match('/tasks/([0-9a-z]+)/auditlog', request.uri_path)
+        if match:
+            task = match.group(1)
+        else:
+            task = None
 
         if 'from' in request.args:
             dtfrom = dateutil.parser.parse(request.args['from'])
@@ -215,17 +219,21 @@ class AuditPlugin(object):
         (addr, path, index) = self.__get_elasticsearch_config(dtfrom=dtfrom, dtuntil=dtuntil)
 
         uri = "%s%s/_search?ignore_unavailable=true&allow_no_indices=true&size=%d&from=%d" % (path, index, limit, offset)
-        query = json.dumps({
+        query = {
             "query": {
                 "bool": { "must": [
-                    { "term": { "task": { "value": task } } },
                     { "range": { "@timestamp": { "gte": dtfrom.isoformat(), "lte": dtuntil.isoformat()} } }
                 ] }
             },
             "sort": [
                 { '@timestamp': "desc" }
             ]
-        })
+        }
+
+        if task:
+            query['query']['bool']['must'].append({ "term": { "task": { "value": task } } })
+
+        query = json.dumps(query)
 
         logger.debug("ES URL: %s%s/_search", path, index)
         logger.debug("ES Query:\n%s", query)
@@ -249,12 +257,13 @@ class AuditPlugin(object):
             answer = {
                 'from': dtfrom.isoformat(),
                 'until': dtuntil.isoformat(),
-                'task': task,
                 'limit': limit,
                 'offset': offset,
                 'count': count,
                 'records': records
             }
+            if task:
+                answer['task'] = task
             return HTTPReply(code=200, body=json.dumps(answer), headers=headers)
         else:
             data = {
