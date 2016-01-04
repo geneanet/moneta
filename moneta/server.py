@@ -316,7 +316,7 @@ class MonetaServer(HTTPServer):
         if task in tasks:
             code = 204
 
-            old = tasks[task]
+            old = tasks[task].copy()
             tasks[task]['enabled'] = enabled
             self.cluster.config.set('tasks', tasks)
 
