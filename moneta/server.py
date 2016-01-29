@@ -265,21 +265,23 @@ class MonetaServer(HTTPServer):
                 return HTTPReply(code = 404)
 
         elif request.method == "PUT":
+            new = json.loads(request.body)
             if task in tasks:
+                old = tasks[task]
+            else:
+                old = None
+
+            tasks[task] = new
+            self.cluster.config.set('tasks', tasks)
+
+            if old:
                 code = 204
                 body = json.dumps({"id": task, "updated": True})
+                get_plugin_registry().call_hook('TaskUpdated', task, old, new)
             else:
                 code = 201
                 body = json.dumps({"id": task, "created": True})
-
-            new = json.loads(request.body)
-            old = tasks[task]
-
-            tasks[task] = new
-
-            self.cluster.config.set('tasks', tasks)
-
-            get_plugin_registry().call_hook('TaskUpdated', task, old, new)
+                get_plugin_registry().call_hook('TaskCreated', task, new)
 
             return HTTPReply(code = code, body = body)
 
