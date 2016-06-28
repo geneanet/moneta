@@ -115,6 +115,7 @@ class AuditPlugin(object):
             record = {
                 'task': task,
                 '@timestamp': datetime.utcnow().replace(tzinfo = dateutil.tz.tzutc()).isoformat(),
+                '@level': 'info',
                 'config': config
             }
 
@@ -129,6 +130,7 @@ class AuditPlugin(object):
             record = {
                 'task': task,
                 '@timestamp': datetime.utcnow().replace(tzinfo = dateutil.tz.tzutc()).isoformat(),
+                '@level': 'info',
                 'config': newconfig,
                 'oldconfig': oldconfig
             }
@@ -143,6 +145,7 @@ class AuditPlugin(object):
         try:
             record = {
                 'task': task,
+                '@level': 'info',
                 '@timestamp': datetime.utcnow().replace(tzinfo = dateutil.tz.tzutc()).isoformat(),
                 'config': config
             }
@@ -163,6 +166,11 @@ class AuditPlugin(object):
                 'message': message
             }
 
+            if (success):
+                record['@level'] = 'success'
+            else:
+                record['@level'] = 'alert'
+
             self.__send_elasticsearch_record('moneta-task-execution', record)
 
         except Exception, e:
@@ -181,6 +189,11 @@ class AuditPlugin(object):
             record['task_command'] = taskconfig['command']
 
             record['@timestamp'] = datetime.utcnow().replace(tzinfo = dateutil.tz.tzutc()).isoformat()
+
+            if (record['status'] == 'ok'):
+                record['@level'] = 'success'
+            else:
+                record['@level'] = 'alert'
 
             self.__send_elasticsearch_record('moneta-task-report', record)
 
