@@ -229,6 +229,11 @@ class AuditPlugin(object):
         else:
             offset = 0
 
+        if 'level' in request.args:
+            level = request.args['level'].split(',')
+        else:
+            level = None
+
         (addr, path, index) = self.__get_elasticsearch_config(dtfrom=dtfrom, dtuntil=dtuntil)
 
         uri = "%s%s/_search?ignore_unavailable=true&allow_no_indices=true&size=%d&from=%d" % (path, index, limit, offset)
@@ -238,6 +243,11 @@ class AuditPlugin(object):
                     { "range": { "@timestamp": { "gte": dtfrom.isoformat(), "lte": dtuntil.isoformat()} } }
                 ] }
             },
+            "aggs": {
+                "levels": {
+                    "terms": {"field": "@level"}
+                }
+            },
             "sort": [
                 { '@timestamp': "desc" }
             ]
@@ -245,6 +255,9 @@ class AuditPlugin(object):
 
         if task:
             query['query']['bool']['must'].append({ "term": { "task": { "value": task } } })
+
+        if level:
+            query['post_filter'] = { "terms": { "@level": level } }
 
         query = json.dumps(query)
 
@@ -267,12 +280,16 @@ class AuditPlugin(object):
                     '@type': hit['_type']
                 })
                 records.append(record)
+            levels = {}
+            for bucket in data['aggregations']['levels']['buckets']:
+                levels[bucket['key']] = bucket['doc_count']
             answer = {
                 'from': dtfrom.isoformat(),
                 'until': dtuntil.isoformat(),
                 'limit': limit,
                 'offset': offset,
                 'count': count,
+                'levels': levels,
                 'records': records
             }
             if task:
