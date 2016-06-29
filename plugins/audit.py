@@ -234,6 +234,11 @@ class AuditPlugin(object):
         else:
             level = None
 
+        if 'type' in request.args:
+            eventtype = request.args['type'].split(',')
+        else:
+            eventtype = None
+
         (addr, path, index) = self.__get_elasticsearch_config(dtfrom=dtfrom, dtuntil=dtuntil)
 
         uri = "%s%s/_search?ignore_unavailable=true&allow_no_indices=true&size=%d&from=%d" % (path, index, limit, offset)
@@ -246,18 +251,27 @@ class AuditPlugin(object):
             "aggs": {
                 "levels": {
                     "terms": {"field": "@level"}
+                },
+                "types": {
+                    "terms": {"field": "_type"}
                 }
             },
             "sort": [
                 { '@timestamp': "desc" }
-            ]
+            ],
+            "post_filter": {
+                "bool": { "must": [] }
+            }
         }
 
         if task:
             query['query']['bool']['must'].append({ "term": { "task": { "value": task } } })
 
         if level:
-            query['post_filter'] = { "terms": { "@level": level } }
+            query['post_filter']['bool']['must'].append({ "terms": { "@level": level } })
+
+        if eventtype:
+            query['post_filter']['bool']['must'].append({ "terms": { "_type": eventtype } })
 
         query = json.dumps(query)
 
@@ -283,6 +297,9 @@ class AuditPlugin(object):
             levels = {}
             for bucket in data['aggregations']['levels']['buckets']:
                 levels[bucket['key']] = bucket['doc_count']
+            types = {}
+            for bucket in data['aggregations']['types']['buckets']:
+                types[bucket['key']] = bucket['doc_count']
             answer = {
                 'from': dtfrom.isoformat(),
                 'until': dtuntil.isoformat(),
@@ -290,6 +307,7 @@ class AuditPlugin(object):
                 'offset': offset,
                 'count': count,
                 'levels': levels,
+                'types': types,
                 'records': records
             }
             if task:
