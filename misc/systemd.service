@@ -8,6 +8,7 @@ ExecStart=/usr/local/bin/moneta --config /etc/moneta/config.yml
 StandardOutput=null
 KillMode=process
 Restart=on-failure
+RestartSec=10s
 
 [Install]
 WantedBy=multi-user.target
