@@ -1,3 +1,7 @@
+log:
+    level: info
+#    file: moneta.log
+#    config: misc/logging.conf
 plugins:
     path: plugins
     load:

@@ -25,7 +25,7 @@ def run():
     parser.add_argument('--nodename', nargs='?', default=None, help='Node name')
     parser.add_argument('--pools', nargs='?', default=None, help='Comma separated list of pools')
     parser.add_argument('--logfile', nargs='?', default=None, help='Log file')
-    parser.add_argument('--loglevel', nargs='?', default="info", help='Log level', choices = ['debug', 'info', 'warning', 'error', 'critical', 'fatal'])
+    parser.add_argument('--loglevel', nargs='?', default=None, help='Log level', choices = ['debug', 'info', 'warning', 'error', 'critical', 'fatal'])
     parser.add_argument('--logconfig', nargs='?', default=None, help='Logging configuration file (overrides --loglevel and --logfile)')
     parser.add_argument('--plugindir', nargs='?', default=None, help='Plugins directory')
     parser.add_argument('--plugins', nargs='+', default=None, help='Load plugin(s)')
@@ -33,26 +33,6 @@ def run():
     parser.add_argument('--leader', dest='leader', action='store_true', help='Contend to leader elections')
     parser.add_argument('--no-leader', dest='leader', action='store_false', help='Do not contend to leader elections')
     args = parser.parse_args()
-
-    # Logging
-    if args.logfile:
-        logging.basicConfig(filename = args.logfile, format =  '%(asctime)s [%(name)s] %(levelname)s: %(message)s')
-    else:
-        logging.basicConfig(format =  '%(asctime)s [%(name)s] %(levelname)s: %(message)s')
-
-    loglevel = {
-        'debug': logging.DEBUG,
-        'info': logging.INFO,
-        'warning': logging.WARNING,
-        'error': logging.ERROR,
-        'critical': logging.CRITICAL,
-        'fatal': logging.FATAL
-    }[args.loglevel]
-
-    logger.setLevel(loglevel)
-
-    if args.logconfig:
-        logging.config.fileConfig(args.logconfig)
 
     # Signals
     def handle_sigterm():
@@ -113,6 +93,21 @@ def run():
     if args.leader:
         local_config['leader'] = args.leader
 
+    if args.logfile:
+        if not 'log' in local_config:
+            local_config['log'] = {}
+        local_config['log']['file'] = args.logfile
+
+    if args.loglevel:
+        if not 'log' in local_config:
+            local_config['log'] = {}
+        local_config['log']['level'] = args.loglevel
+
+    if args.logconfig:
+        if not 'log' in local_config:
+            local_config['log'] = {}
+        local_config['log']['config'] = args.logconfig
+
     # Default values
     if not 'listen' in local_config or not local_config['listen']:
         local_config['listen'] = "127.0.0.1:32000"
@@ -140,6 +135,32 @@ def run():
 
     if not 'leader' in local_config or not local_config['leader']:
         local_config['leader'] = True
+
+    if not 'log' in local_config or not local_config['log']:
+        local_config['log'] = { }
+
+    if not 'level' in local_config['log'] or not local_config['log']['level']:
+        local_config['log']['level'] = 'info'
+
+    # Logging
+    if 'file' in local_config['log']:
+        logging.basicConfig(filename = local_config['log']['file'], format =  '%(asctime)s [%(name)s] %(levelname)s: %(message)s')
+    else:
+        logging.basicConfig(format =  '%(asctime)s [%(name)s] %(levelname)s: %(message)s')
+
+    loglevel = {
+        'debug': logging.DEBUG,
+        'info': logging.INFO,
+        'warning': logging.WARNING,
+        'error': logging.ERROR,
+        'critical': logging.CRITICAL,
+        'fatal': logging.FATAL
+    }[local_config['log']['level']]
+
+    logger.setLevel(loglevel)
+
+    if 'config' in local_config['log']:
+        logging.config.fileConfig(local_config['log']['config'])
 
     logger.debug('Local config: %s', local_config)
 
