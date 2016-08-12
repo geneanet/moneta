@@ -1,0 +1,14 @@
+[Unit]
+Description=Moneta Daemon
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/moneta --config /etc/moneta/config.yml
+StandardOutput=null
+KillMode=process
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+Alias=moneta.service
