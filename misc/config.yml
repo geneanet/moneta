@@ -1,18 +1,18 @@
 log:
     level: info
 #    file: moneta.log
-#    config: misc/logging.conf
+#    config: logging.conf
 plugins:
     path: plugins
     load:
         - mailer
         - audit
-        - configbackup
+#        - configbackup
         - executionsummary
     config:
-        configbackup:
-            path: config-backup.yaml
-            format: yaml
+#        configbackup:
+#            path: config-backup.json
+#            format: json
 pools:
     - default
 listen: 127.0.0.1:32000
