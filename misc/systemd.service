@@ -12,4 +12,3 @@ RestartSec=10s
 
 [Install]
 WantedBy=multi-user.target
-Alias=moneta.service
