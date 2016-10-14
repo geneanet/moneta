@@ -184,7 +184,8 @@ An AngularJS/Foundation app is available to offer a nice GUI (see http://github.
 
 Dependencies
 ============
-- ``gevent``
-- ``Kazoo``
-- ``dateutil``
-- ``PyYAML``
+
+- `gevent <https://github.com/gevent/gevent>`_
+- `Kazoo <https://github.com/python-zk/kazoo>`_
+- `dateutil <https://github.com/dateutil/dateutil>`_
+- `PyYAML <https://github.com/yaml/pyyaml>`_
