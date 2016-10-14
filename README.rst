@@ -1,3 +1,4 @@
+======
 Moneta
 ======
 
@@ -10,9 +11,11 @@ Task execution reports can be stored in ElasticSearch, in a way that is easily e
 .. contents::
 
 Usage
------
+=====
 
-moneta --listen 127.0.0.1:3200 --nodename mynode --zookeeper zookeepernode:2181
+::
+
+ moneta --listen 127.0.0.1:3200 --nodename mynode --zookeeper zookeepernode:2181
 
 The IP address on which Moneta listens is the one announced to other nodes, so it must be reachable by them.
 
@@ -21,7 +24,7 @@ More parameters are available, refer to --help.
 Config files can be used instead of command line parameters, see examples in the "misc" directory.
 
 API
----
+===
 
 Moneta can be configured using a REST API. Any moneta node can be used to configure the whole cluster.
 An AngularJS/Foundation app is available to offer a nice GUI (see http://github.com/geneanet/moneta-web).
@@ -175,8 +178,8 @@ An AngularJS/Foundation app is available to offer a nice GUI (see http://github.
     ]
 
 Dependencies
-------------
-- gevent
-- Kazoo
-- dateutil
-- PyYAML
+============
+- ``gevent``
+- ``Kazoo``
+- ``dateutil``
+- ``PyYAML``
