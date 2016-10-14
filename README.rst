@@ -23,6 +23,11 @@ More parameters are available, refer to --help.
 
 Config files can be used instead of command line parameters, see examples in the "misc" directory.
 
+Tutorial
+========
+
+A tutorial to setup Moneta and Zookeeper is available at `<doc/setup_tutorial.en.rst>`_.
+
 API
 ===
 
