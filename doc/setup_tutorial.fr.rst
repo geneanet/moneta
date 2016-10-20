@@ -31,7 +31,7 @@ Dans notre exemple, dans un but de simplicité, nous n'utiliserons qu'une seule 
 
     herve@tuto-moneta:~$ sudo vim /etc/zookeeper/conf/myid
 
-  Dans cet exemple on choisira l'ID 1.
+   Dans cet exemple on choisira l'ID 1.
 
 3. Editer la configuration pour lister chaque serveur du cluster::
 
@@ -197,8 +197,8 @@ La procédure d'installation est la suivante:
 
 2. Installation de dépendances::
 
-    herve@tuto-moneta:~$ sudo apt-get install bower
-    herve@tuto-moneta:~$ bower install
+    herve@tuto-moneta:~/moneta-web$ sudo apt-get install bower
+    herve@tuto-moneta:~/moneta-web$ bower install
 
 Le GUI est alors accessible en ouvrant ``index.html`` avec un navigateur Web.
 
