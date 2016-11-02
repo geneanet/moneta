@@ -109,6 +109,37 @@ class MonetaServer(HTTPServer):
 
     def handle_cluster_status(self, request):
         """Handle requests to /cluster/status"""
+        """
+        @api {get} /cluster/status Get cluster status
+        @apiName GetClusterStatus
+        @apiGroup Cluster
+        @apiVersion 1.0.0
+
+        @apiSuccess {Object}    nodes               Nodes in the cluster.
+        @apiSuccess {Object}    nodes.node          Node.
+        @apiSuccess {String[]}  nodes.node.pools    Pools in which the node is registered.
+        @apiSuccess {String}    nodes.node.address  IP address of the node.
+        @apiSuccess {String}    leader              Leader node.
+
+        @apiSuccessExample {json} Example response:
+            {
+              "nodes": {
+                "node1": {
+                  "pools": ["pool1", "pool2"],
+                  "address": "127.0.0.1:32001"
+                },
+                "node2": {
+                  "pools": ["pool1"],
+                  "address": "127.0.0.1:32002"
+                },
+                "node3": {
+                  "pools": ["pool2"],
+                  "address": "127.0.0.1:32003"
+                },
+              },
+              "leader": "node1"
+            }
+        """
 
         headers = { 'Content-Type': 'application/javascript' }
 
@@ -121,6 +152,17 @@ class MonetaServer(HTTPServer):
 
     def handle_node(self, request):
         """Handle requests to /node/[^/]+/.+"""
+        """
+        @api {ANY} /node/:node/:uri Proxy a request
+        @apiName ProxyToNode
+        @apiGroup Misc
+        @apiVersion 1.0.0
+
+        @apiDescription Proxy the request :uri to the node :node, and forward the response.
+
+        @apiParam {string}  :node    Node name.
+        @apiParam {string}  :uri     URI.
+        """
 
         match = re.match('/node/([^/]+)(/.+)', request.uri_path)
         node = match.group(1)
@@ -136,6 +178,45 @@ class MonetaServer(HTTPServer):
 
     def handle_status(self, request):
         """Handle requests to /status"""
+        """
+        @api {get} /status Get node status
+        @apiName GetNodeStatus
+        @apiGroup Node
+        @apiVersion 1.0.0
+
+        @apiSuccess {Boolean}   execution_enabled                   Task execution is enabled on the node.
+        @apiSuccess {Boolean}   leader                              Node is the leader.
+        @apiSuccess {String}    name                                Node name.
+        @apiSuccess {Boolean}   scheduler_running                   The scheduler is running on the node.
+        @apiSuccess {String}    address                             Node IP address.
+        @apiSuccess {String[]}  pools                               Pools in which the node is registered.
+        @apiSuccess {Object}    running_processes                   Processes running on the host.
+        @apiSuccess {Object}    running_processes.process           Process.
+        @apiSuccess {String}    running_processes.process.started   Time the process started, ISO 8601 formatted.
+        @apiSuccess {String}    running_processes.process.task      ID of the task.
+        @apiSuccess {Boolean}   cluster_joined                      Node has joined the cluster.
+        @apiSuccess {Boolean}   contending_for_lead                 Node is contending for lead.
+        @apiSuccess {Boolean}   pools_joined                        Node has joined its pools.
+
+        @apiSuccessExample {json} Example response:
+            {
+              "execution_enabled": true,
+              "leader": false,
+              "name": "node2",
+              "scheduler_running": false,
+              "address": "127.0.0.1:32002",
+              "pools": ["pool1", "pool2"],
+              "running_processes": {
+                "b26e5cc2ef3f11e4817b0026b951c045": {
+                  "started": "2015-04-30T13:49:18.351494+00:00",
+                  "task": "508b4b72e44611e49e76c81f66cd0cca"
+                }
+              },
+              "cluster_joined": true,
+              "contending_for_lead": true,
+              "pools_joined": true
+            }
+        """
 
         headers = { 'Content-Type': 'application/javascript' }
 
@@ -158,6 +239,22 @@ class MonetaServer(HTTPServer):
 
     def handle_cluster_pools(self, request):
         """Handle requests to /cluster/pools"""
+        """
+        @api {get} /cluster/pools Get cluster pools
+        @apiName GetClusterPools
+        @apiGroup Cluster
+        @apiVersion 1.0.0
+
+        @apiDescription List pools and nodes registered into each.
+
+        @apiSuccess {String[]}  pool    List of nodes registered into the pool.
+
+        @apiSuccessExample {json} Example response:
+            {
+              "pool1": ["node1", "node2"],
+              "pool2: ["node1", "node3"]
+            }
+        """
 
         headers = { 'Content-Type': 'application/javascript' }
 
@@ -165,6 +262,22 @@ class MonetaServer(HTTPServer):
 
     def handle_cluster_config(self, request):
         """Handle requests to /cluster/config/.+"""
+        """
+        @api {get} /cluster/config/:key Get cluster parameter
+        @apiName GetClusterConfig
+        @apiGroup Cluster
+        @apiVersion 1.0.0
+
+        @apiParam {string} :key  Name of the parameter to get
+        """
+        """
+        @api {put} /cluster/config/:key Set cluster parameter
+        @apiName SetClusterConfig
+        @apiGroup Cluster
+        @apiVersion 1.0.0
+
+        @apiParam {string} :key  Name of the parameter to set
+        """
 
         headers = { 'Content-Type': 'application/javascript' }
 
@@ -195,6 +308,20 @@ class MonetaServer(HTTPServer):
 
     def handle_tags(self, request):
         """Handle requests to /tags"""
+        """
+        @api {get} /tags List tags
+        @apiName GetTags
+        @apiGroup Misc
+        @apiVersion 1.0.0
+
+        @apiDescription List currenty used tags
+
+        @apiSuccessExample {json} Example response:
+            [
+              "tag1",
+              "tag2"
+            ]
+        """
 
         headers = { 'Content-Type': 'application/javascript' }
 
@@ -210,6 +337,21 @@ class MonetaServer(HTTPServer):
 
     def handle_plugins(self, request):
         """Handle requests to /plugins"""
+        """
+        @api {get} /plugins List plugins
+        @apiName GetPlugins
+        @apiGroup Node
+        @apiVersion 1.0.0
+
+        @apiDescription List plugins loaded on the node.
+
+        @apiSuccessExample {json} Example response:
+            [
+              "configbackup",
+              "mailer",
+              "executionsummary"
+            ]
+        """
 
         headers = { 'Content-Type': 'application/javascript' }
 
@@ -218,6 +360,107 @@ class MonetaServer(HTTPServer):
 
     def handle_tasks(self, request):
         """Handle requests to /tasks"""
+        """
+        @api {get} /tasks List tasks
+        @apiName GetTasks
+        @apiGroup Tasks
+        @apiVersion 1.0.0
+
+        @apiDescription Return a list of all configured tasks, along with their configuration.
+
+        @apiSuccessExample {json} Example response:
+            {
+              "021b2092ef4111e481a852540064e600": {
+                  "name": "task 1",
+                  "enabled": true,
+                  "mode": "all",
+                  "pools": ["web"],
+                  "schedules": [
+                    {"minute": ["*/5"]}
+                  ],
+                  "command": "/bin/task1",
+              },
+              "508b4b72e44611e49e76c81f66cd0cca": {
+                  "name": "task 2",
+                  "enabled": false,
+                  "mode": "all",
+                  "pools": ["pool2"],
+                  "schedules": [
+                    {"hours": [15], "minutes": [0]}
+                  ],
+                  "command": "/bin/task2",
+              }
+            }
+        """
+        """
+        @api {post} /tasks Create a new task
+        @apiName PostTasks
+        @apiGroup Tasks
+        @apiVersion 1.0.0
+
+        @apiDescription Add a new task, providing its configuration.
+
+        @apiParam {String}      name            Name.
+        @apiParam {String}      description     Description.
+        @apiParam {String[]}    tags            Tags.
+        @apiParam {Boolean}     enabled         Task is enabled.
+        @apiParam {String}      mode            Task mode ("any" or "all").
+        @apiParam {String[]}    pools           Pools on which the task should run.
+        @apiParam {Object[]}    schedules       Schedules at which the task should run.
+        @apiParam {String}      command         Command to run.
+        @apiParam {String}      workdir         Working directory.
+        @apiParam {String}      user            User which the task will be run.
+        @apiParam {String}      group           Group which the task will be run.
+        @apiParam {Object}      env             Environment variables to set.
+        @apiParam {String}      mailreport      If the mailer plugin is enabled, condition to send a report ("error", "stdout", "stderr", "output", "always").
+        @apiParam {String[]}    mailto          If the mailer plugin is enabled, email addresses to send the reports to.
+
+        @apiParamExample {json} Example parameters:
+            {
+              "name": "My task",
+              "description": "Task description",
+              "tags": ["tasg1", "tag2"],
+              "enabled": true,
+              "mode": "all",
+              "pools": ["web"],
+              "schedules": [
+                {"minute": ["*/1"]}
+              ],
+              "command": "/bin/true",
+              "workdir": "/tmp/",
+              "user": "www-data",
+              "group": "www-data",
+              "env": {
+                "MYENVVAR": "myvalue"
+              },
+              "mailreport": "output",
+              "mailto": ["user@domain.org"]
+            }
+
+        @apiSuccess {Boolean}   created The task has been created.
+        @apiSuccess {String}    id      ID of the newly created task.
+
+        @apiSuccessExample {json} Example response:
+            {
+              "created": true,
+              "id": "021b2092ef4111e481a852540064e600"
+            }
+        """
+        """
+        @api {delete} /tasks Delete all tasks
+        @apiName DeleteTasks
+        @apiGroup Tasks
+        @apiVersion 1.0.0
+
+        @apiDescription Delete all tasks. Use with caution.
+
+        @apiSuccess {Boolean}   deleted     The tasks have been deleted.
+
+        @apiSuccessExample {json} Example response:
+            {
+              "deleted": true
+            }
+        """
 
         headers = { 'Content-Type': 'application/javascript' }
 
@@ -250,6 +493,129 @@ class MonetaServer(HTTPServer):
 
     def handle_task(self, request):
         """Handle requests to /tasks/[0-9a-z]+"""
+        """
+        @api {get} /tasks/:id Get a task
+        @apiName GetTask
+        @apiGroup Tasks
+        @apiVersion 1.0.0
+
+        @apiDescription Returns the configuration of a task.
+
+        @apiParam {String}        :id             Task ID.
+
+        @apiSuccess {String}      name            Name.
+        @apiSuccess {String}      description     Description.
+        @apiSuccess {String[]}    tags            Tags.
+        @apiSuccess {Boolean}     enabled         Task is enabled.
+        @apiSuccess {String}      mode            Task mode ("any" or "all").
+        @apiSuccess {String[]}    pools           Pools on which the task should run.
+        @apiSuccess {Object[]}    schedules       Schedules at which the task should run.
+        @apiSuccess {String}      command         Command to run.
+        @apiSuccess {String}      workdir         Working directory.
+        @apiSuccess {String}      user            User which the task will be run.
+        @apiSuccess {String}      group           Group which the task will be run.
+        @apiSuccess {Object}      env             Environment variables to set.
+        @apiSuccess {String}      mailreport      If the mailer plugin is enabled, condition to send a report ("error", "stdout", "stderr", "output", "always").
+        @apiSuccess {String[]}    mailto          If the mailer plugin is enabled, email addresses to send the reports to.
+
+        @apiSuccessExample {json} Example response:
+            {
+              "name": "My task",
+              "description": "Task description",
+              "tags": ["tasg1", "tag2"],
+              "enabled": true,
+              "mode": "all",
+              "pools": ["web"],
+              "schedules": [
+                {"minute": ["*/1"]}
+              ],
+              "command": "/bin/true",
+              "workdir": "/tmp/",
+              "user": "www-data",
+              "group": "www-data",
+              "env": {
+                "MYENVVAR": "myvalue"
+              },
+              "mailreport": "output",
+              "mailto": ["user@domain.org"]
+            }
+        """
+        """
+        @api {put} /task/:id Update a task
+        @apiName PutTask
+        @apiGroup Tasks
+        @apiVersion 1.0.0
+
+        @apiDescription Update a task. Can also be used to create a task with a specific ID.
+
+        @apiParam {String}      :id             Task ID.
+
+        @apiParam {String}      name            Name.
+        @apiParam {String}      description     Description.
+        @apiParam {String[]}    tags            Tags.
+        @apiParam {Boolean}     enabled         Task is enabled.
+        @apiParam {String}      mode            Task mode ("any" or "all").
+        @apiParam {String[]}    pools           Pools on which the task should run.
+        @apiParam {Object[]}    schedules       Schedules at which the task should run.
+        @apiParam {String}      command         Command to run.
+        @apiParam {String}      workdir         Working directory.
+        @apiParam {String}      user            User which the task will be run.
+        @apiParam {String}      group           Group which the task will be run.
+        @apiParam {Object}      env             Environment variables to set.
+        @apiParam {String}      mailreport      If the mailer plugin is enabled, condition to send a report ("error", "stdout", "stderr", "output", "always").
+        @apiParam {String[]}    mailto          If the mailer plugin is enabled, email addresses to send the reports to.
+
+        @apiParamExample {json} Example parameters:
+            {
+              "name": "My task",
+              "description": "Task description",
+              "tags": ["tasg1", "tag2"],
+              "enabled": true,
+              "mode": "all",
+              "pools": ["web"],
+              "schedules": [
+                {"minute": ["*/1"]}
+              ],
+              "command": "/bin/true",
+              "workdir": "/tmp/",
+              "user": "www-data",
+              "group": "www-data",
+              "env": {
+                "MYENVVAR": "myvalue"
+              },
+              "mailreport": "output",
+              "mailto": ["user@domain.org"]
+            }
+
+        @apiSuccess {Boolean}   updated The task has been updated.
+        @apiSuccess {String}    id      ID of the task.
+
+        @apiSuccessExample {json} Example response:
+            {
+              "updated": true,
+              "id": "021b2092ef4111e481a852540064e600"
+            }
+        """
+        """
+        @api {delete} /task/:id Delete a task
+        @apiName DeleteTask
+        @apiGroup Tasks
+        @apiVersion 1.0.0
+
+        @apiDescription Delete a task.
+
+        @apiParam {String}      :id             Task ID.
+
+        @apiSuccess {Boolean}   deleted The task has been deleted.
+        @apiSuccess {String}    id      ID of the task.
+
+        @apiSuccessExample {json} Example response:
+            {
+              "deleted": true,
+              "id": "021b2092ef4111e481a852540064e600"
+            }
+        """
+
 
         headers = { 'Content-Type': 'application/javascript' }
 
@@ -306,6 +672,40 @@ class MonetaServer(HTTPServer):
 
     def handle_task_enable(self, request):
         """Handle requests to /tasks/[0-9a-z]+/(en|dis)able"""
+        """
+        @api {post} /task/:id/enable Enable a task
+        @apiName EnableTask
+        @apiGroup Tasks
+        @apiVersion 1.0.0
+
+        @apiParam {String}      :id             Task ID.
+
+        @apiSuccess {Boolean}   updated The task has been updated.
+        @apiSuccess {String}    id      ID of the task.
+
+        @apiSuccessExample {json} Example response:
+            {
+              "updated": true,
+              "id": "021b2092ef4111e481a852540064e600"
+            }
+        """
+        """
+        @api {post} /task/:id/disable Disable a task
+        @apiName DisableTask
+        @apiGroup Tasks
+        @apiVersion 1.0.0
+
+        @apiParam {String}      :id             Task ID.
+
+        @apiSuccess {Boolean}   updated The task has been updated.
+        @apiSuccess {String}    id      ID of the task.
+
+        @apiSuccessExample {json} Example response:
+            {
+              "updated": true,
+              "id": "021b2092ef4111e481a852540064e600"
+            }
+        """
 
         match = re.match('/tasks/([0-9a-z]+)/(en|dis)able', request.uri_path)
         task = match.group(1)
