@@ -1,0 +1,6 @@
+{
+  "name": "Moneta",
+  "tagline": "Fault-tolerant distributed tasks scheduler",
+  "body": "Moneta is a fault-tolerant, distributed task manager. It is intended to be a replacement for the traditional UNIX cron systems, allowing a scheduled execution of tasks on one or several nodes of a cluster.\r\n\r\nIt requires a Zookeeper cluster for configuration storage and cluster synchronization. Task execution reports can be stored in ElasticSearch, in a way that is easily exploitable using Kibana.",
+  "note": "Don't delete this file! It's used internally to help with page regeneration."
+}
