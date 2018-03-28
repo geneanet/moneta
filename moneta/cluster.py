@@ -13,6 +13,8 @@ import gevent
 from moneta.scheduler import MonetaScheduler
 from moneta.pluginregistry import get_plugin_registry
 from moneta.clusterconfig import MonetaClusterConfig
+from moneta.http.http import HTTPRequest, parse_host_port
+from moneta.http.client import HTTPClient
 
 logger = logging.getLogger('moneta.cluster')
 
@@ -294,3 +296,33 @@ class MonetaCluster(object):
                 pools_watchers[pool] = self.zk.ChildrenWatch("/moneta/pools/%s" % pool, handle_pool_update)
 
         self.pools_watchers = pools_watchers
+
+    def list_running_processes(self):
+        """ Ask every node in the cluster for its status and return a summary of running processes """
+        processes = {}
+
+        for (nodename, node) in self.nodes.iteritems():
+            logger.debug("Asking node %s for status", nodename)
+            addr = parse_host_port(node['address'])
+            client = HTTPClient(addr)
+            response = client.request(HTTPRequest(uri = '/status'))
+            if response.code == 200:
+                status = json.loads(response.body)
+                processes.update(status['running_processes'])
+            else:
+                raise Exception('Error while gathering status information from nodes. Node %s returned code %d.' % (nodename, response.code))
+
+        return processes
+
+    def list_running_tasks(self):
+        """ List all tasks having at least one process currently running """
+        tasks = set()
+        processes = self.list_running_processes()
+        
+        for process in processes.itervalues():
+            tasks.add(process['task'])
+        return tasks
+
+    def is_task_running(self, task):
+        """ Check if a task is currently running on any node in the cluster """
+        return task in self.list_running_tasks()
