@@ -44,6 +44,7 @@ class MonetaServer(HTTPServer):
         self.register_route('/cluster/config/.+', self.handle_cluster_config, {'GET', 'PUT', 'DELETE'})
         self.register_route('/node/[^/]+/.+', self.handle_node, {'GET', 'POST', 'PUT', 'DELETE', 'EXECUTE'})
         self.register_route('/status', self.handle_status, {'GET'})
+        self.register_route('/tasks/[0-9a-z]+/running', self.handle_task_running, {'GET'})
         self.register_route('/tasks/[0-9a-z]+/report', self.handle_task_report, {'POST'})
         self.register_route('/tasks/[0-9a-z]+/(en|dis)able', self.handle_task_enable, {'POST'})
         self.register_route('/tasks/[0-9a-z]+', self.handle_task, {'GET', 'PUT', 'DELETE', 'EXECUTE'})
@@ -768,3 +769,33 @@ class MonetaServer(HTTPServer):
         get_plugin_registry().call_hook('ReceivedReport', report)
 
         return HTTPReply(code = 200)
+
+    def handle_task_running(self, request):
+        """Handle requests to /tasks/[0-9a-z]+/running"""
+        """
+        @api {get} /task/:id/running Check if a task is running
+        @apiName IsTaskRunning
+        @apiGroup Tasks
+        @apiVersion 1.0.1
+
+        @apiParam {String}      :id             Task ID.
+
+        @apiSuccess {Boolean}   running The task is running.
+        @apiSuccess {String}    id      ID of the task.
+
+        @apiSuccessExample {json} Example response:
+            {
+              "running": true,
+              "id": "021b2092ef4111e481a852540064e600"
+            }
+        """
+
+        match = re.match('/tasks/([0-9a-z]+)/running', request.uri_path)
+        task = match.group(1)
+
+        running = self.cluster.is_task_running(task)
+
+        headers = { 'Content-Type': 'application/javascript' }
+        body = json.dumps({"id": task, "running": running})
+
+        return HTTPReply(code = 200, body = body, headers = headers)
