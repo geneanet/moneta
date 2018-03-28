@@ -118,7 +118,7 @@ class MonetaScheduler(object):
                     addr = parse_host_port(self.cluster.nodes[node]['address'])
                     client = HTTPClient(addr)
                     logger.info("Running task %s on node %s", task, node)
-                    ret = client.request(HTTPRequest(uri = '/tasks/%s' % task, method = 'EXECUTE'))
+                    ret = client.request(HTTPRequest(uri = '/tasks/%s?target=local' % task, method = 'EXECUTE'))
 
                     get_plugin_registry().call_hook('TaskExecuted', task, node, ret.code == 200, ret.body)
 

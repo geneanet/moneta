@@ -615,6 +615,26 @@ class MonetaServer(HTTPServer):
               "id": "021b2092ef4111e481a852540064e600"
             }
         """
+        """
+        @api {execute} /task/:id Execute a task
+        @apiName ExecuteTask
+        @apiGroup Tasks
+        @apiVersion 1.0.1
+
+        @apiDescription Execute a task.
+
+        @apiParam {String}      :id             Task ID.
+        @apiParam {String}      :target         Target for task execution ("local" to execute on the local node, otherwise execute on the nodes on which the task is configured to run).
+
+        @apiSuccess {Boolean}   Executed The task has been executed.
+        @apiSuccess {String}    id       ID of the task.
+
+        @apiSuccessExample {json} Example response:
+            {
+              "deleted": true,
+              "id": "021b2092ef4111e481a852540064e600"
+            }
+        """
 
 
         headers = { 'Content-Type': 'application/javascript' }
@@ -665,7 +685,11 @@ class MonetaServer(HTTPServer):
 
         if request.method == "EXECUTE":
             try:
-                self.manager.execute_task(task)
+                if 'target' in request.args and request.args['target'] == 'local':
+                    self.manager.execute_task(task)
+                else:
+                    self.cluster.scheduler.run_task(task)
+
                 return HTTPReply(code = 200, body = json.dumps({"id": task, "executed": True}))
             except ExecutionDisabled:
                 return HTTPReply(code = 503, body = json.dumps({"id": task, "executed": False}))
