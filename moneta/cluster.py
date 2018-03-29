@@ -308,7 +308,9 @@ class MonetaCluster(object):
             response = client.request(HTTPRequest(uri = '/status'))
             if response.code == 200:
                 status = json.loads(response.body)
-                processes.update(status['running_processes'])
+                for (processid, processdata) in status['running_processes'].iteritems():
+                    processes[processid] = processdata
+                    processes[processid]['node'] = nodename
             else:
                 raise Exception('Error while gathering status information from nodes. Node %s returned code %d.' % (nodename, response.code))
 
@@ -326,3 +328,9 @@ class MonetaCluster(object):
     def is_task_running(self, task):
         """ Check if a task is currently running on any node in the cluster """
         return task in self.list_running_tasks()
+
+    def list_task_processes(self, task):
+        """ List the running processes for a task """
+        processes = { processid:processdata for (processid,processdata) in self.list_running_processes().iteritems() if processdata['task'] == task }
+        return processes
+        

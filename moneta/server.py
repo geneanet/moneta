@@ -45,6 +45,7 @@ class MonetaServer(HTTPServer):
         self.register_route('/node/[^/]+/.+', self.handle_node, {'GET', 'POST', 'PUT', 'DELETE', 'EXECUTE'})
         self.register_route('/status', self.handle_status, {'GET'})
         self.register_route('/tasks/[0-9a-z]+/running', self.handle_task_running, {'GET'})
+        self.register_route('/tasks/[0-9a-z]+/processes', self.handle_task_processes, {'GET'})
         self.register_route('/tasks/[0-9a-z]+/report', self.handle_task_report, {'POST'})
         self.register_route('/tasks/[0-9a-z]+/(en|dis)able', self.handle_task_enable, {'POST'})
         self.register_route('/tasks/[0-9a-z]+', self.handle_task, {'GET', 'PUT', 'DELETE', 'EXECUTE'})
@@ -797,5 +798,41 @@ class MonetaServer(HTTPServer):
 
         headers = { 'Content-Type': 'application/javascript' }
         body = json.dumps({"id": task, "running": running})
+
+        return HTTPReply(code = 200, body = body, headers = headers)
+
+    def handle_task_processes(self, request):
+        """Handle requests to /tasks/[0-9a-z]+/processes"""
+        """
+        @api {get} /task/:id/processes List running processes for a task
+        @apiName ListTaskProcesses
+        @apiGroup Tasks
+        @apiVersion 1.0.1
+
+        @apiParam {String}      :id             Task ID.
+
+        @apiSuccessExample {json} Example response:
+            {
+                "021b2092ef4111e481a852540064e600" : {
+                    "node": "node1",
+                    "started": "2018-03-29T15:01:13.465183+00:00",
+                    "task": "e4d07482e44711e49e76c81f66cd0cca"
+                },
+                "253a96e29868135d746989a6123f521e" : {
+                    "node": "node2",
+                    "started": "2018-03-29T14:01:13.352067+00:00",
+                    "task": "508b4b72e44611e49e76c81f66cd0cca"
+                },
+                ...
+            }
+        """
+
+        match = re.match('/tasks/([0-9a-z]+)/processes', request.uri_path)
+        task = match.group(1)
+
+        processes = self.cluster.list_task_processes(task)
+
+        headers = { 'Content-Type': 'application/javascript' }
+        body = json.dumps(processes)
 
         return HTTPReply(code = 200, body = body, headers = headers)
