@@ -77,7 +77,14 @@ class MonetaScheduler(object):
                         logger.exception("Encountered an exception while trying to match task %s schedules with current tick (TICK %d). The task may not be scheduled correctly.", task_id, this_tick)
 
                     if should_run:
-                        gevent.spawn(self.run_task, task_id)
+                        if 'concurrency' in task_config and task_config['concurrency'] > 0:
+                            processes = self.cluster.list_task_processes(task_id)
+                            if len(processes) < task_config['concurrency']:
+                                gevent.spawn(self.run_task, task_id)
+                            else:
+                                logger.warning('Task %s was scheduled to run but its maximum concurrency (%d) has been reached (%d running processes).', task_id, task_config['concurrency'], len(processes))
+                        else:
+                            gevent.spawn(self.run_task, task_id)
 
             self.cluster.update_last_tick(this_tick)
 
