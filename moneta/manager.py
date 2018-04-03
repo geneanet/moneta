@@ -18,7 +18,7 @@ from gevent import Greenlet, GreenletExit
 
 from moneta.http.client import HTTPClient
 from moneta.http.http import HTTPRequest, parse_host_port
-from moneta.exceptions import ExecutionDisabled
+from moneta.exceptions import ExecutionDisabled, ProcessNotFound
 
 logger = logging.getLogger('moneta.manager')
 
@@ -62,6 +62,17 @@ class MonetaManager(object):
 
         for greenlet in greenlets:
             greenlet.kill(block = wait)
+
+    def kill(self, process, wait = True):
+        """Kill a running process"""
+        
+        try:
+            self.running_processes[process]['greenlet'].kill(block = wait)
+        except KeyError:
+            raise ProcessNotFound("Process %s not found" % (process))
+
+    def is_process_running(self, process):
+        return process in self.running_processes.keys()
 
     def execute_task(self, task):
         """Spawn a greenlet to execute a task"""
