@@ -103,7 +103,7 @@ class MonetaServer(HTTPServer):
 
         except BaseException, e:
             logger.exception("Caught exception while handling request %s %s", request.method, request.uri)
-            reply = HTTPReply(code = 500, body = json.dumps({"error": True, "message": repr(e), "traceback": traceback.format_exc()}))
+            reply = HTTPReply(code = 500, body = json.dumps({"error": True, "message": repr(e), "traceback": traceback.format_exc()}), headers = { 'Content-Type': 'application/javascript' })
 
         reply.set_header("Access-Control-Allow-Origin", "*")
 
@@ -481,7 +481,7 @@ class MonetaServer(HTTPServer):
             for (task, taskconfig) in oldtasks.iteritems():
                 get_plugin_registry().call_hook('TaskDeleted', task, taskconfig)
 
-            return HTTPReply(code = 204, body = json.dumps({"deleted": True}))
+            return HTTPReply(code = 204, body = json.dumps({"deleted": True}), headers = headers)
 
         elif request.method == "POST":
             task = uuid.uuid1().hex
@@ -491,7 +491,7 @@ class MonetaServer(HTTPServer):
 
             get_plugin_registry().call_hook('TaskCreated', task, tasks[task])
 
-            return HTTPReply(code = 201, body = json.dumps({"id": task, "created": True}))
+            return HTTPReply(code = 201, body = json.dumps({"id": task, "created": True}), headers = headers)
 
     def handle_task(self, request):
         """Handle requests to /tasks/[0-9a-z]+"""
@@ -681,7 +681,7 @@ class MonetaServer(HTTPServer):
 
                 get_plugin_registry().call_hook('TaskDeleted', task, old)
 
-                return HTTPReply(code = 204, body = json.dumps({"id": task, "deleted": True}))
+                return HTTPReply(code = 204, body = json.dumps({"id": task, "deleted": True}), headers = headers)
             else:
                 return HTTPReply(code = 404)
 
