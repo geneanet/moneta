@@ -88,7 +88,7 @@ class MonetaServer(HTTPServer):
         request.uri_path = re.sub(r'(.)/$', r'\1', request.uri_path)
 
         if request.method == 'OPTIONS':
-            return HTTPReply(code = 200, headers = {"Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, EXECUTE", "Access-Control-Allow-Headers": "content-type"} )
+            return HTTPReply(code = 200, headers = {"Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, EXECUTE, KILL", "Access-Control-Allow-Headers": "content-type"} )
 
         try:
             reply = HTTPReply(code = 404)
