@@ -14,7 +14,7 @@ import logging
 from moneta.http.client import HTTPClient
 from moneta.http.server import HTTPServer
 from moneta.http.http import HTTPReply, HTTPRequest, parse_host_port
-from moneta.exceptions import ExecutionDisabled
+from moneta.exceptions import ExecutionDisabled, ProcessNotFound
 from moneta.pluginregistry import get_plugin_registry
 
 logger = logging.getLogger('moneta.server')
@@ -27,7 +27,8 @@ class MonetaServer(HTTPServer):
         'PUT',
         'DELETE',
         'EXECUTE',
-        'OPTIONS'
+        'OPTIONS',
+        'KILL'
     ]
 
     def __init__(self, cluster, manager, address):
@@ -52,6 +53,7 @@ class MonetaServer(HTTPServer):
         self.register_route('/tasks', self.handle_tasks, {'GET', 'POST', 'DELETE'})
         self.register_route('/tags', self.handle_tags, {'GET'})
         self.register_route('/plugins', self.handle_plugins, {'GET'})
+        self.register_route('/processes/[0-9a-z]+', self.handle_process, {'KILL'})
 
     def register_route(self, route, controller, methods = "GET"):
         """ Register a function to generate response for an HTTP query """
@@ -836,3 +838,56 @@ class MonetaServer(HTTPServer):
         body = json.dumps(processes)
 
         return HTTPReply(code = 200, body = body, headers = headers)
+
+    def handle_process(self, request):
+        """Handle requests to /processes/[0-9a-z]+"""
+        """
+        @api {kill} /processes/:id Kill a running process
+        @apiName KillProcesses
+        @apiGroup Processes
+        @apiVersion 1.0.1
+
+        @apiParam {String}      :id             Process ID.
+
+        @apiSuccessExample {json} Example response:
+            {
+              "killed": true,
+              "id": "021b2092ef4111e481a852540064e600"
+            }
+        """
+
+        match = re.match('/processes/([0-9a-z]+)', request.uri_path)
+        processid = match.group(1)
+
+        if request.method == "KILL":
+            try:
+                # If the process is running on the local node
+                if (self.manager.is_process_running(processid)):
+                    self.manager.kill(processid)
+                # If the process is running on another node
+                else:
+                    try:
+                        # Find out on which node is the process
+                        cluster_running_processes = self.cluster.list_running_processes()
+                        process = cluster_running_processes[processid]
+                        node = process['node']
+                        # Kill the process on the node
+                        response = self.cluster.query_node(node, 'KILL', '/processes/%s' % (processid))
+                        if response['code'] == 404:
+                            raise ProcessNotFound()
+                        elif response['code'] != 200:
+                            raise Exception('Node %s returned code %d when asked to kill process %s.' % (node, response['code'], processid))
+                    except KeyError:
+                        raise ProcessNotFound()
+                killed = True
+                code = 200
+            except ProcessNotFound:
+                killed = False
+                code = 404
+
+            headers = { 'Content-Type': 'application/javascript' }
+            body = json.dumps({
+                "id": processid,
+                "killed": killed
+            })
+            return HTTPReply(code = code, body = body, headers = headers)
