@@ -317,18 +317,15 @@ class MonetaCluster(object):
         """ Ask every node in the cluster for its status and return a summary of running processes """
         processes = {}
 
-        for (nodename, node) in self.nodes.iteritems():
+        for nodename in self.nodes.iterkeys():
             logger.debug("Asking node %s for status", nodename)
-            addr = parse_host_port(node['address'])
-            client = HTTPClient(addr)
-            response = client.request(HTTPRequest(uri = '/status'))
-            if response.code == 200:
-                status = json.loads(response.body)
-                for (processid, processdata) in status['running_processes'].iteritems():
+            response = self.query_node(nodename, uri = '/status')
+            if response['code'] == 200:
+                for (processid, processdata) in response['data']['running_processes'].iteritems():
                     processes[processid] = processdata
                     processes[processid]['node'] = nodename
             else:
-                raise Exception('Error while gathering status information from nodes. Node %s returned code %d.' % (nodename, response.code))
+                raise Exception('Error while gathering status information from nodes. Node %s returned code %d.' % (nodename, response['code']))
 
         return processes
 
