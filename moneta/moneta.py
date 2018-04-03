@@ -133,7 +133,7 @@ def run():
     if not 'config' in local_config['plugins'] or not local_config['plugins']['config']:
         local_config['plugins']['config'] = {}
 
-    if not 'leader' in local_config or not local_config['leader']:
+    if not 'leader' in local_config or local_config['leader'] not in (True, False):
         local_config['leader'] = True
 
     if not 'log' in local_config or not local_config['log']:
