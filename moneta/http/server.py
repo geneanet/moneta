@@ -6,6 +6,10 @@ from gevent.server import StreamServer
 from gevent import sleep
 import logging
 from fcntl import fcntl, F_GETFD, F_SETFD, FD_CLOEXEC
+from collections import OrderedDict
+import re
+import json
+import traceback
 
 from moneta.http.http import *
 
@@ -26,6 +30,7 @@ class HTTPServer(object):
     def __init__(self, address):
         self.address = address
         self.server = None
+        self.routes = OrderedDict()
 
     @staticmethod
     def _set_cloexec(socket):
@@ -142,5 +147,53 @@ class HTTPServer(object):
         socket.close()
         logger.debug("[%s:%d] Connection closed", *address)
 
+    def register_route(self, route, controller, methods = "GET"):
+        """ Register a function to generate response for an HTTP query """
+        if not hasattr(controller, '__call__'):
+            raise TypeError("Controller must be callable")
+
+        if isinstance(methods, (str, unicode)):
+            methods = { methods }
+
+        if not isinstance(methods, set):
+            raise TypeError('Methods must be a string or a set')
+
+        try:
+            regex = re.compile("^%s$" % route)
+        except Exception as e:
+            raise ValueError('Unable to compile regex for route {0}'.format(route))
+
+        for method in methods:
+            logger.debug("Registering method %s for route %s", method, route)
+            self.routes[(route, method)] = {
+                'controller': controller,
+                'regex':  regex
+            }
+
     def handle_request(self, socket, address, request):
-        pass
+        """Handle a HTTP request, finding the right route"""
+
+        # Fold multiple / in URL
+        request.uri_path = re.sub(r'/+', r'/', request.uri_path)
+
+        # Remove ending /
+        request.uri_path = re.sub(r'(.)/$', r'\1', request.uri_path)
+
+        try:
+            reply = HTTPReply(code = 404)
+
+            for ((route, method), routeconfig) in self.routes.iteritems():
+                match = routeconfig['regex'].match(request.uri_path)
+                if match:
+                    if request.method == method:
+                        logger.debug('Matched route %s method %s', route, method)
+                        reply = routeconfig['controller'](request)
+                        break
+                    else:
+                        reply = HTTPReply(code = 405)
+
+        except BaseException, e:
+            logger.exception("Caught exception while handling request %s %s", request.method, request.uri)
+            reply = HTTPReply(code = 500, body = json.dumps({"error": True, "message": repr(e), "traceback": traceback.format_exc()}), headers = { 'Content-Type': 'application/javascript' })
+
+        return reply

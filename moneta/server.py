@@ -7,8 +7,6 @@ from collections import OrderedDict
 import re
 import uuid
 
-import traceback
-
 import logging
 
 from moneta.http.client import HTTPClient
@@ -38,8 +36,7 @@ class MonetaServer(HTTPServer):
         self.cluster = cluster
         self.manager = manager
 
-        self.routes = OrderedDict()
-
+        self.register_route('.*', self.handle_options, {'OPTIONS'})
         self.register_route('/cluster/pools', self.handle_cluster_pools, {'GET'})
         self.register_route('/cluster/status', self.handle_cluster_status, {'GET'})
         self.register_route('/cluster/config/.+', self.handle_cluster_config, {'GET', 'PUT', 'DELETE'})
@@ -55,61 +52,8 @@ class MonetaServer(HTTPServer):
         self.register_route('/plugins', self.handle_plugins, {'GET'})
         self.register_route('/processes/[0-9a-z]+', self.handle_process, {'KILL'})
 
-    def register_route(self, route, controller, methods = "GET"):
-        """ Register a function to generate response for an HTTP query """
-        if not hasattr(controller, '__call__'):
-            raise TypeError("Controller must be callable")
-
-        if isinstance(methods, (str, unicode)):
-            methods = { methods }
-
-        if not isinstance(methods, set):
-            raise TypeError('Methods must be a string or a set')
-
-        try:
-            regex = re.compile("^%s$" % route)
-        except Exception as e:
-            raise ValueError('Unable to compile regex for route {0}'.format(route))
-
-        for method in methods:
-            logger.debug("Registering method %s for route %s", method, route)
-            self.routes[(route, method)] = {
-                'controller': controller,
-                'regex':  regex
-            }
-
-    def handle_request(self, socket, address, request):
-        """Handle a HTTP request, finding the right route"""
-
-        # Fold multiple / in URL
-        request.uri_path = re.sub(r'/+', r'/', request.uri_path)
-
-        # Remove ending /
-        request.uri_path = re.sub(r'(.)/$', r'\1', request.uri_path)
-
-        if request.method == 'OPTIONS':
-            return HTTPReply(code = 200, headers = {"Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, EXECUTE, KILL", "Access-Control-Allow-Headers": "content-type"} )
-
-        try:
-            reply = HTTPReply(code = 404)
-
-            for ((route, method), routeconfig) in self.routes.iteritems():
-                match = routeconfig['regex'].match(request.uri_path)
-                if match:
-                    if request.method == method:
-                        logger.debug('Matched route %s method %s', route, method)
-                        reply = routeconfig['controller'](request)
-                        break
-                    else:
-                        reply = HTTPReply(code = 405)
-
-        except BaseException, e:
-            logger.exception("Caught exception while handling request %s %s", request.method, request.uri)
-            reply = HTTPReply(code = 500, body = json.dumps({"error": True, "message": repr(e), "traceback": traceback.format_exc()}), headers = { 'Content-Type': 'application/javascript' })
-
-        reply.set_header("Access-Control-Allow-Origin", "*")
-
-        return reply
+    def handle_options(self, request):
+        return HTTPReply(code = 200, headers = {"Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, EXECUTE, KILL", "Access-Control-Allow-Headers": "content-type"} )
 
     def handle_cluster_status(self, request):
         """Handle requests to /cluster/status"""
@@ -145,7 +89,10 @@ class MonetaServer(HTTPServer):
             }
         """
 
-        headers = { 'Content-Type': 'application/javascript' }
+        headers = {
+            'Content-Type': 'application/javascript',
+            'Access-Control-Allow-Origin': '*'
+        }
 
         status  = {
             'nodes': self.cluster.nodes,
@@ -173,7 +120,7 @@ class MonetaServer(HTTPServer):
         uri = match.group(2)
 
         if node not in self.cluster.nodes:
-            return HTTPReply(code = 404, headers = { 'Content-Type': 'application/javascript' }, body = '{ "message": "Node not found" }')
+            return HTTPReply(code = 404, headers = { 'Content-Type': 'application/javascript', 'Access-Control-Allow-Origin': '*' }, body = '{ "message": "Node not found" }')
 
         addr = parse_host_port(self.cluster.nodes[node]["address"])
 
@@ -222,7 +169,10 @@ class MonetaServer(HTTPServer):
             }
         """
 
-        headers = { 'Content-Type': 'application/javascript' }
+        headers = {
+            'Content-Type': 'application/javascript',
+            'Access-Control-Allow-Origin': '*'
+        }
 
         status  = {
             'name': self.cluster.nodename,
@@ -260,7 +210,10 @@ class MonetaServer(HTTPServer):
             }
         """
 
-        headers = { 'Content-Type': 'application/javascript' }
+        headers = {
+            'Content-Type': 'application/javascript',
+            'Access-Control-Allow-Origin': '*'
+        }
 
         return HTTPReply(body = json.dumps(self.cluster.pools), headers = headers)
 
@@ -283,7 +236,10 @@ class MonetaServer(HTTPServer):
         @apiParam {string} :key  Name of the parameter to set
         """
 
-        headers = { 'Content-Type': 'application/javascript' }
+        headers = {
+            'Content-Type': 'application/javascript',
+            'Access-Control-Allow-Origin': '*'
+        }
 
         match = re.match('/cluster/config/(.+)', request.uri_path)
         name = match.group(1)
@@ -292,23 +248,23 @@ class MonetaServer(HTTPServer):
             try:
                 return HTTPReply(body = json.dumps(self.cluster.config.get(name)), headers = headers)
             except KeyError:
-                return HTTPReply(code = 404)
+                return HTTPReply(code = 404, headers = {'Access-Control-Allow-Origin', '*'})
 
         elif request.method == "PUT":
             try:
                 self.cluster.config.set(name, json.loads(request.body))
-                return HTTPReply(code = 204)
+                return HTTPReply(code = 204, headers = {'Access-Control-Allow-Origin', '*'})
             except (ValueError, TypeError) as error:
-                return HTTPReply(code = 400, message = str(error))
+                return HTTPReply(code = 400, message = str(error), headers = {'Access-Control-Allow-Origin', '*'})
             except KeyError:
-                return HTTPReply(code = 404)
+                return HTTPReply(code = 404, headers = {'Access-Control-Allow-Origin', '*'})
 
         elif request.method == "DELETE":
             try:
                 self.cluster.config.clear(name)
-                return HTTPReply(code = 204)
+                return HTTPReply(code = 204, headers = {'Access-Control-Allow-Origin', '*'})
             except KeyError:
-                return HTTPReply(code = 404)
+                return HTTPReply(code = 404, headers = {'Access-Control-Allow-Origin', '*'})
 
     def handle_tags(self, request):
         """Handle requests to /tags"""
@@ -327,7 +283,10 @@ class MonetaServer(HTTPServer):
             ]
         """
 
-        headers = { 'Content-Type': 'application/javascript' }
+        headers = {
+            'Content-Type': 'application/javascript',
+            'Access-Control-Allow-Origin': '*'
+        }
 
         tags = []
 
@@ -357,7 +316,10 @@ class MonetaServer(HTTPServer):
             ]
         """
 
-        headers = { 'Content-Type': 'application/javascript' }
+        headers = {
+            'Content-Type': 'application/javascript',
+            'Access-Control-Allow-Origin': '*'
+        }
 
         plugins = get_plugin_registry().get_plugins()
         return HTTPReply(code = 200, body = json.dumps(plugins), headers = headers)
@@ -466,7 +428,10 @@ class MonetaServer(HTTPServer):
             }
         """
 
-        headers = { 'Content-Type': 'application/javascript' }
+        headers = {
+            'Content-Type': 'application/javascript',
+            'Access-Control-Allow-Origin': '*'
+        }
 
         if request.method == "GET":
             tasks  = self.cluster.config.get('tasks')
@@ -641,7 +606,10 @@ class MonetaServer(HTTPServer):
         """
 
 
-        headers = { 'Content-Type': 'application/javascript' }
+        headers = {
+            'Content-Type': 'application/javascript',
+            'Access-Control-Allow-Origin': '*'
+        }
 
         match = re.match('/tasks/([0-9a-z]+)', request.uri_path)
         task = match.group(1)
@@ -652,7 +620,7 @@ class MonetaServer(HTTPServer):
             if task in tasks:
                 return HTTPReply(code = 200, body = json.dumps(tasks[task]), headers = headers)
             else:
-                return HTTPReply(code = 404)
+                return HTTPReply(code = 404, headers = {'Access-Control-Allow-Origin', '*'})
 
         elif request.method == "PUT":
             new = json.loads(request.body)
@@ -673,7 +641,7 @@ class MonetaServer(HTTPServer):
                 body = json.dumps({"id": task, "created": True})
                 get_plugin_registry().call_hook('TaskCreated', task, new)
 
-            return HTTPReply(code = code, body = body)
+            return HTTPReply(code = code, body = body, headers = headers)
 
         elif request.method == "DELETE":
             if task in tasks:
@@ -685,7 +653,7 @@ class MonetaServer(HTTPServer):
 
                 return HTTPReply(code = 204, body = json.dumps({"id": task, "deleted": True}), headers = headers)
             else:
-                return HTTPReply(code = 404)
+                return HTTPReply(code = 404, headers = {'Access-Control-Allow-Origin', '*'})
 
         if request.method == "EXECUTE":
             try:
@@ -694,9 +662,9 @@ class MonetaServer(HTTPServer):
                 else:
                     self.cluster.scheduler.run_task(task)
 
-                return HTTPReply(code = 200, body = json.dumps({"id": task, "executed": True}))
+                return HTTPReply(code = 200, body = json.dumps({"id": task, "executed": True}), headers = headers)
             except ExecutionDisabled:
-                return HTTPReply(code = 503, body = json.dumps({"id": task, "executed": False}))
+                return HTTPReply(code = 503, body = json.dumps({"id": task, "executed": False}), headers = headers)
 
     def handle_task_enable(self, request):
         """Handle requests to /tasks/[0-9a-z]+/(en|dis)able"""
@@ -752,12 +720,18 @@ class MonetaServer(HTTPServer):
 
             get_plugin_registry().call_hook('TaskUpdated', task, old, tasks[task])
 
-            headers = { 'Content-Type': 'application/javascript' }
+            headers = {
+                'Content-Type': 'application/javascript',
+                'Access-Control-Allow-Origin': '*'
+            }
             body = json.dumps({"id": task, "updated": True})
 
             return HTTPReply(code = code, body = body, headers = headers)
         else:
-            return HTTPReply(code = 404)
+            headers = {
+                'Access-Control-Allow-Origin', '*'
+            }
+            return HTTPReply(code = 404, headers = headers)
 
     def handle_task_report(self, request):
         """Handle requests to /tasks/[0-9a-z]+/report"""
@@ -798,7 +772,10 @@ class MonetaServer(HTTPServer):
 
         running = self.cluster.is_task_running(task)
 
-        headers = { 'Content-Type': 'application/javascript' }
+        headers = {
+            'Content-Type': 'application/javascript',
+            'Access-Control-Allow-Origin': '*'
+        }
         body = json.dumps({"id": task, "running": running})
 
         return HTTPReply(code = 200, body = body, headers = headers)
@@ -834,7 +811,10 @@ class MonetaServer(HTTPServer):
 
         processes = self.cluster.list_task_processes(task)
 
-        headers = { 'Content-Type': 'application/javascript' }
+        headers = {
+            'Content-Type': 'application/javascript',
+            'Access-Control-Allow-Origin': '*'
+        }
         body = json.dumps(processes)
 
         return HTTPReply(code = 200, body = body, headers = headers)
@@ -885,7 +865,10 @@ class MonetaServer(HTTPServer):
                 killed = False
                 code = 404
 
-            headers = { 'Content-Type': 'application/javascript' }
+            headers = {
+                'Content-Type': 'application/javascript',
+                'Access-Control-Allow-Origin': '*'
+            }
             body = json.dumps({
                 "id": processid,
                 "killed": killed
