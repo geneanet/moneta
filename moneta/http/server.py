@@ -192,7 +192,7 @@ class HTTPServer(object):
                     else:
                         reply = HTTPReply(code = 405)
 
-        except BaseException, e:
+        except Exception, e:
             logger.exception("Caught exception while handling request %s %s", request.method, request.uri)
             reply = HTTPReply(code = 500, body = json.dumps({"error": True, "message": repr(e), "traceback": traceback.format_exc()}), headers = { 'Content-Type': 'application/javascript' })
 
