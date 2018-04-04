@@ -144,9 +144,9 @@ def run():
 
     # Logging
     if 'file' in local_config['log']:
-        logging.basicConfig(filename = local_config['log']['file'], format =  '%(asctime)s [%(name)s] %(levelname)s: %(message)s')
+        logging.basicConfig(filename = local_config['log']['file'], format =  '%(asctime)s [%(process)d:%(name)s] %(levelname)s: %(message)s')
     else:
-        logging.basicConfig(format =  '%(asctime)s [%(name)s] %(levelname)s: %(message)s')
+        logging.basicConfig(format =  '%(asctime)s [%(process)d:%(name)s] %(levelname)s: %(message)s')
 
     loglevel = {
         'debug': logging.DEBUG,
