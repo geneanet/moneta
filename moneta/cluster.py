@@ -298,16 +298,24 @@ class MonetaCluster(object):
         self.pools_watchers = pools_watchers
 
     def query_node(self, nodename, method = "GET", uri = "/", body = None, headers = None):
+        if headers == None:
+            headers = {}
+
         if body:
             body = json.dumps(body)
             headers['Content-Type'] = "application/javascript"
         else:
             body = ""
+
         addr = parse_host_port(self.nodes[nodename]['address'])
         client = HTTPClient(addr)
         response = client.request(HTTPRequest(method = method, uri = uri, body = body, headers = headers))
+
         if response.body and response.get_header("Content-Type") == "application/javascript":
             data = json.loads(response.body)
+        else:
+            data = None
+            
         return {
             "code": response.code,
             "data": data
