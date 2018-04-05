@@ -6,10 +6,10 @@ from kazoo.client import KazooClient, KazooState
 from kazoo.handlers.gevent import SequentialGeventHandler
 from kazoo.exceptions import NodeExistsError, NoNodeError
 
-import json
 import logging
 import gevent
 
+from moneta import json
 from moneta.scheduler import MonetaScheduler
 from moneta.pluginregistry import get_plugin_registry
 from moneta.clusterconfig import MonetaClusterConfig
