@@ -135,19 +135,19 @@ class MonetaServer(HTTPServer):
         @apiGroup Node
         @apiVersion 1.0.0
 
-        @apiSuccess {Boolean}   execution_enabled                   Task execution is enabled on the node.
-        @apiSuccess {Boolean}   leader                              Node is the leader.
-        @apiSuccess {String}    name                                Node name.
-        @apiSuccess {Boolean}   scheduler_running                   The scheduler is running on the node.
-        @apiSuccess {String}    address                             Node IP address.
-        @apiSuccess {String[]}  pools                               Pools in which the node is registered.
-        @apiSuccess {Object}    running_processes                   Processes running on the host.
-        @apiSuccess {Object}    running_processes.process           Process.
-        @apiSuccess {String}    running_processes.process.started   Time the process started, ISO 8601 formatted.
-        @apiSuccess {String}    running_processes.process.task      ID of the task.
-        @apiSuccess {Boolean}   cluster_joined                      Node has joined the cluster.
-        @apiSuccess {Boolean}   contending_for_lead                 Node is contending for lead.
-        @apiSuccess {Boolean}   pools_joined                        Node has joined its pools.
+        @apiSuccess {Boolean}   execution_enabled                       Task execution is enabled on the node.
+        @apiSuccess {Boolean}   leader                                  Node is the leader.
+        @apiSuccess {String}    name                                    Node name.
+        @apiSuccess {Boolean}   scheduler_running                       The scheduler is running on the node.
+        @apiSuccess {String}    address                                 Node IP address.
+        @apiSuccess {String[]}  pools                                   Pools in which the node is registered.
+        @apiSuccess {Object}    running_processes                       Processes running on the host.
+        @apiSuccess {Object}    running_processes.process               Process.
+        @apiSuccess {String}    running_processes.process.start_time    Time the process started, ISO 8601 formatted.
+        @apiSuccess {String}    running_processes.process.task          ID of the task.
+        @apiSuccess {Boolean}   cluster_joined                          Node has joined the cluster.
+        @apiSuccess {Boolean}   contending_for_lead                     Node is contending for lead.
+        @apiSuccess {Boolean}   pools_joined                            Node has joined its pools.
 
         @apiSuccessExample {json} Example response:
             {
@@ -159,7 +159,7 @@ class MonetaServer(HTTPServer):
               "pools": ["pool1", "pool2"],
               "running_processes": {
                 "b26e5cc2ef3f11e4817b0026b951c045": {
-                  "started": "2015-04-30T13:49:18.351494+00:00",
+                  "start_time": "2015-04-30T13:49:18.351494+00:00",
                   "task": "508b4b72e44611e49e76c81f66cd0cca"
                 }
               },
@@ -184,7 +184,7 @@ class MonetaServer(HTTPServer):
             'contending_for_lead': self.cluster.contending_for_lead,
 
             'execution_enabled': self.manager.enabled,
-            'running_processes': dict([ (execid, { 'task': details['task'], 'started': details['started'].isoformat() }) for (execid, details) in self.manager.running_processes.iteritems() ]),
+            'running_processes': dict([ (execid, { 'task': details['task'], 'start_time': details['start_time'].isoformat() }) for (execid, details) in self.manager.running_processes.iteritems() ]),
 
             'scheduler_running': self.cluster.scheduler.running
         }
@@ -794,12 +794,12 @@ class MonetaServer(HTTPServer):
             {
                 "021b2092ef4111e481a852540064e600" : {
                     "node": "node1",
-                    "started": "2018-03-29T15:01:13.465183+00:00",
+                    "start_time": "2018-03-29T15:01:13.465183+00:00",
                     "task": "e4d07482e44711e49e76c81f66cd0cca"
                 },
                 "253a96e29868135d746989a6123f521e" : {
                     "node": "node2",
-                    "started": "2018-03-29T14:01:13.352067+00:00",
+                    "start_time": "2018-03-29T14:01:13.352067+00:00",
                     "task": "508b4b72e44611e49e76c81f66cd0cca"
                 },
                 ...
