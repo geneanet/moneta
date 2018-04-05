@@ -133,7 +133,7 @@ class MonetaServer(HTTPServer):
         @api {get} /status Get node status
         @apiName GetNodeStatus
         @apiGroup Node
-        @apiVersion 1.0.0
+        @apiVersion 1.1.0
 
         @apiSuccess {Boolean}   execution_enabled                       Task execution is enabled on the node.
         @apiSuccess {Boolean}   leader                                  Node is the leader.
@@ -588,7 +588,7 @@ class MonetaServer(HTTPServer):
         @api {execute} /task/:id Execute a task
         @apiName ExecuteTask
         @apiGroup Tasks
-        @apiVersion 1.0.1
+        @apiVersion 1.1.0
 
         @apiDescription Execute a task.
 
@@ -753,7 +753,7 @@ class MonetaServer(HTTPServer):
         @api {get} /task/:id/running Check if a task is running
         @apiName IsTaskRunning
         @apiGroup Tasks
-        @apiVersion 1.0.1
+        @apiVersion 1.1.0
 
         @apiParam {String}      :id             Task ID.
 
@@ -786,7 +786,7 @@ class MonetaServer(HTTPServer):
         @api {get} /task/:id/processes List running processes for a task
         @apiName ListTaskProcesses
         @apiGroup Tasks
-        @apiVersion 1.0.1
+        @apiVersion 1.1.0
 
         @apiParam {String}      :id             Task ID.
 
@@ -825,7 +825,7 @@ class MonetaServer(HTTPServer):
         @api {kill} /processes/:id Kill a running process
         @apiName KillProcesses
         @apiGroup Processes
-        @apiVersion 1.0.1
+        @apiVersion 1.1.0
 
         @apiParam {String}      :id             Process ID.
 
