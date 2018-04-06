@@ -27,10 +27,11 @@ class HTTPServer(object):
         'CONNECT'
     ]
 
-    def __init__(self, address):
+    def __init__(self, address, request_log_level = logging.INFO):
         self.address = address
         self.server = None
         self.routes = OrderedDict()
+        self.request_log_level = request_log_level
 
     @staticmethod
     def _set_cloexec(socket):
@@ -124,7 +125,9 @@ class HTTPServer(object):
                 body = fp.read(bodylength)
 
             # Processing
-            logger.info("[%s] Processing request %s %s", repr(address), method, uri)
+            if self.request_log_level:
+                logger.log(self.request_log_level, "[%s] Processing request %s %s", repr(address), method, uri)
+                
             try:
                 request = HTTPRequest(method, uri, version, headers, body)
                 reply = self.handle_request(socket, address, request)
