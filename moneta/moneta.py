@@ -32,30 +32,16 @@ def run():
     parser.add_argument('--config', nargs='?', default=None, help='Config file')
     parser.add_argument('--leader', dest='leader', action='store_true', help='Contend to leader elections')
     parser.add_argument('--no-leader', dest='leader', action='store_false', help='Do not contend to leader elections')
+    parser.add_argument('--watcher', dest='watcher', action='store_true', help=argparse.SUPPRESS)
     args = parser.parse_args()
 
     # Signals
-    def handle_sigterm():
-        """ Dirty exit, currently running tasks will be killed """
-        logger.info('Received SIGTERM.')
-        manager.shutdown(kill = True)
+    def handle_clean_exit():
+        """ Clean exit, currently running tasks will be left running """
+        logger.info('Termination signal received.')
         sys.exit(0)
 
-    def handle_sigquit():
-        """ Dirty exit, currently running tasks will be left running """
-        logger.info('Received SIGQUIT.')
-        sys.exit(0)
-
-    def handle_sigwinch():
-        """ Clean exit, waiting for currently running tasks to finish """
-        logger.info('Received SIGWINCH.')
-        cluster.quit_pools()
-        manager.shutdown()
-        sys.exit(0)
-
-    gevent.signal(signal.SIGTERM, handle_sigterm)
-    gevent.signal(signal.SIGQUIT, handle_sigquit)
-    gevent.signal(signal.SIGWINCH, handle_sigwinch)
+    gevent.signal(signal.SIGTERM, handle_clean_exit)
 
     # Local config
     if args.config:
