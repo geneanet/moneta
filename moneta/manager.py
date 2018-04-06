@@ -3,211 +3,119 @@
 from __future__ import absolute_import
 
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 import dateutil.tz
-from pwd import getpwnam
-from grp import getgrnam
-from os import setgid, setuid, setgroups, chdir, environ
-import json
 import uuid
-from locale import getpreferredencoding
+import re
+import os, signal
 
-from gevent.subprocess import Popen
-from subprocess import PIPE
-from gevent import Greenlet, GreenletExit
+from gevent import Greenlet, sleep
 
-from moneta.http.client import HTTPClient
-from moneta.http.http import HTTPRequest, parse_host_port
+from moneta import json
+from moneta.http.server import HTTPServer
+from moneta.http.http import HTTPReply, parse_host_port
 from moneta.exceptions import ExecutionDisabled, ProcessNotFound
+from moneta.watcher import MonetaWatcher
 
 logger = logging.getLogger('moneta.manager')
 
-class MonetaManager(object):
+class MonetaManager(HTTPServer):
     """ Execute tasks, keeping log of what is running """
 
-    def __init__(self, cluster):
+    allowed_methods = [
+        'UPDATE'
+    ]
+
+    def __init__(self, cluster, address = '127.0.0.1:32001'):
         """ Constructor """
+        HTTPServer.__init__(self, parse_host_port(address), request_log_level = logging.DEBUG)
+        self.register_route('/processes/[0-9a-z]+', self.handle_update, {'UPDATE'})
+        self.run()
+
+        self.expiration_greenlet = Greenlet.spawn(self.expiration_timer)
+        self.expiration_greenlet.start()
+
         self.cluster = cluster
+        self.address = address
         self.running_processes = {}
         self.enabled = True
 
-    def shutdown(self, kill = False):
-        """Disable new executions and either wait for all currently running tasks to finish or kill them"""
+        self.watcher_timeout = 5
 
-        logger.info("Shutting down manager: disabling task execution on this node")
-
-        self.enabled = False
-
-        if kill:
-            self.kill_all()
-        else:
-            self.wait_until_finished()
-
-    def wait_until_finished(self):
-        """Wait for all currently running tasks to finish"""
-
-        greenlets = [ process['greenlet'] for process in self.running_processes.itervalues() ]
-
-        logger.debug("Waiting for %d currently running tasks to finish", len(greenlets))
-
-        for greenlet in greenlets:
-            greenlet.join()
-
-    def kill_all(self, wait = True):
-        """Kill all running tasks"""
-
-        greenlets = [ process['greenlet'] for process in self.running_processes.itervalues() ]
-
-        logger.debug("Killing %d currently running tasks", len(greenlets))
-
-        for greenlet in greenlets:
-            greenlet.kill(block = wait)
-
-    def kill(self, process, wait = True):
-        """Kill a running process"""
+    def expiration_timer(self):
+        """Expire processes that have sent no updates for watcher_timeout seconds"""
         
-        try:
-            self.running_processes[process]['greenlet'].kill(block = wait)
-        except KeyError:
-            raise ProcessNotFound("Process %s not found" % (process))
+        while True:
+            expire_after = datetime.utcnow().replace(tzinfo = dateutil.tz.tzutc()) - timedelta(seconds = self.watcher_timeout)
+            for (processid, process) in self.running_processes.items():
+                if process['last_update'] <  expire_after:
+                    logger.warning('Process %s timed out ! Removing from running processes list.', processid)
+                    del self.running_processes[processid]
+            sleep(1)
+    
+    def handle_update(self, request):
+        """Handle updates requests sent by the watchers"""
 
-    def is_process_running(self, process):
-        return process in self.running_processes.keys()
+        match = re.match('/processes/([0-9a-z]+)', request.uri_path)
+        processid = match.group(1)
+
+        data = json.loads(request.body)
+
+        # Set last update timestamp
+        data['last_update'] = datetime.utcnow().replace(tzinfo = dateutil.tz.tzutc())
+
+        # Update the running process list with received data
+        if self.running_processes.has_key(processid):
+            logger.debug('Received update from process %s.', processid)
+            self.running_processes[processid].update(data)
+        else:
+            logger.debug('Received update from NEW process %s. Adding to running processes list.', processid)
+            self.running_processes[processid] = data
+        
+        # The task has finished, send the report to the leader
+        if data.has_key('finished') and data['finished']:
+            logger.info("Reporting process %s (task %s) execution report to leader", processid, data['task'])
+            ret = self.cluster.query_node(self.cluster.leader, uri = '/tasks/%s/report' % data['task'], method = 'POST', body = data)
+            if ret['code'] != 200:
+                logger.error("Encountered an error while sending process %s (task %s) execution report. Leader returned %d.", processid, data['task'], ret['code'])
+            # Remove from the running processes list
+            del self.running_processes[processid]
+
+        return HTTPReply(code = 204)
 
     def execute_task(self, task):
-        """Spawn a greenlet to execute a task"""
+        """Spawn a watcher to run a task"""
 
         if not self.enabled:
             raise ExecutionDisabled()
 
-        execid = uuid.uuid1().hex
-
-        greenlet = Greenlet(self._execute_task, task)
-
-        def handle_task_completion(greenlet, execid = execid):
-            """ Delete the greenlet from the list of running tasks """
-            del self.running_processes[execid]
-
-        greenlet.link(handle_task_completion)
-
-        self.running_processes[execid] = {
-            "task": task,
-            "started": datetime.utcnow().replace(tzinfo = dateutil.tz.tzutc()),
-            "greenlet": greenlet
-        }
-
-        greenlet.start()
-
-    def _execute_task(self, task):
-        """Execute a task and send the results to the leader"""
-
         logger.info("Running task %s", task)
+        execid = uuid.uuid1().hex
+        MonetaWatcher.spawn(execid, task, self.cluster.config.get('tasks')[task], self.address)
+        logger.debug('Watcher started for task %s: process ID %s', task, execid)
 
-        start = datetime.utcnow().replace(tzinfo = dateutil.tz.tzutc())
+        return execid
 
-        report = {
-            "node": self.cluster.nodename,
-            "task": task,
-            "start_time": start.isoformat()
-        }
+    def is_process_running(self, process):
+        return process in self.running_processes.keys()
 
+    def kill(self, process):
+        """Kill a running process"""
         try:
-            taskconfig = self.cluster.config.get('tasks')[task]
+            os.kill(self.running_processes[process]['pid'], signal.SIGTERM)
+        except KeyError:
+            raise ProcessNotFound("Process %s not found" % (process))
 
-            def drop_privileges():
-                """Change user, group and workdir before running the process"""
-                if 'group' in taskconfig and taskconfig['group']:
-                    group = getgrnam(taskconfig['group']).gr_gid
-                    setgroups([])
-                    setgid(group)
+    def kill_all(self):
+        """Kill all running tasks"""
 
-                if 'user' in taskconfig and taskconfig['user']:
-                    user = getpwnam(taskconfig['user']).pw_uid
-                    setuid(user)
+        logger.debug("Killing %d currently running tasks", len(self.running_processes))
 
-                if 'workdir' in taskconfig and taskconfig['workdir']:
-                    workdir = taskconfig['workdir']
-                    chdir(workdir)
-
-            args = taskconfig['command']
-
-            if 'env' in taskconfig:
-                env = dict(environ)
-                env.update(taskconfig['env'])
-            else:
-                env = dict(environ)
-
-            process = Popen(args = args, shell = True, preexec_fn = drop_privileges, stdout = PIPE, stderr = PIPE, env = env)
-
-            (stdout, stderr) = process.communicate()
-            returncode = process.returncode
-
-            if returncode == 0:
-                status = "ok"
-            else:
-                status = "error"
-
-            def decodestring(string, encoding = None):
-                """ Decode a string to utf-8. If encoding is not specified, try several ones, and finally fallback on ascii. """
-                try:
-                    if encoding:
-                        return string.decode(encoding, 'replace')
-
-                    else:
-                        encodings = [ getpreferredencoding(), 'utf-8', 'iso-8859-1' ]
-
-                        for encoding in encodings:
-                            try:
-                                return string.decode(encoding)
-
-                            except UnicodeDecodeError:
-                                continue
-
-                except UnicodeError:
-                    return string.decode('ascii', 'replace')
-
-            report.update({
-                "status": status,
-                "returncode": returncode,
-                "stdout": decodestring(stdout),
-                "stderr": decodestring(stderr)
-            })
-
-        except GreenletExit:
-            logger.info("Killing currently running task %s", task)
-            if process:
-                process.kill()
-
-            report.update({
-                "status": "fail",
-                "error": "Killed"
-            })
-
-        except Exception, e:
-            logger.exception("Encountered an exception while running task %s", task)
-
-            report.update({
-                "status": "fail",
-                "error": str(e)
-            })
-
-        finally:
+        for process in self.running_processes.keys():
             try:
-                end = datetime.utcnow().replace(tzinfo = dateutil.tz.tzutc())
+                self.kill(process)
+            except ProcessNotFound:
+                pass
 
-                report.update({
-                    "end_time": end.isoformat(),
-                    "duration": (end - start).total_seconds()
-                })
 
-                logger.info("Reporting task %s execution results to leader", task)
-
-                addr = parse_host_port(self.cluster.nodes[self.cluster.leader]['address'])
-                client = HTTPClient(addr)
-                ret = client.request(HTTPRequest(uri = '/tasks/%s/report' % task, method = 'POST', body = json.dumps(report)))
-
-                if ret.code != 200:
-                    logger.error("Encountered an error while sending task %s execution report. Leader returned %d.", task, ret.code)
-
-            except Exception, e:
-                logger.exception("Encountered an exception while running task %s", task)
+            
