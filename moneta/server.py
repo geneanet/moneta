@@ -2,13 +2,12 @@
 
 from __future__ import absolute_import
 
-import json
-from collections import OrderedDict
 import re
 import uuid
 
 import logging
 
+from moneta import json
 from moneta.http.client import HTTPClient
 from moneta.http.server import HTTPServer
 from moneta.http.http import HTTPReply, HTTPRequest, parse_host_port
