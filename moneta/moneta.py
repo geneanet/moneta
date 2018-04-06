@@ -36,14 +36,6 @@ def run():
     parser.add_argument('--watcher', dest='watcher', action='store_true', help=argparse.SUPPRESS)
     args = parser.parse_args()
 
-    # Signals
-    def handle_clean_exit():
-        """ Clean exit, currently running tasks will be left running """
-        logger.info('Termination signal received.')
-        sys.exit(0)
-
-    gevent.signal(signal.SIGTERM, handle_clean_exit)
-
     # Local config
     if args.config:
         try:
@@ -161,6 +153,13 @@ def run():
 
     try:
         logger.debug('Starting')
+
+        # Signals
+        def handle_clean_exit():
+            """ Clean exit, currently running tasks will be left running """
+            logger.info('Termination signal received.')
+            sys.exit(0)
+        gevent.signal(signal.SIGTERM, handle_clean_exit)
 
         # Instanciate Cluster, Manager and Server
         cluster = MonetaCluster(local_config['nodename'], local_config['listen'], ','.join(local_config['zookeeper']), pools = local_config['pools'], contend_for_lead = local_config['leader'])
