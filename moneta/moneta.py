@@ -13,6 +13,7 @@ import yaml
 from moneta.cluster import MonetaCluster
 from moneta.manager import MonetaManager
 from moneta.server import MonetaServer
+from moneta.watcher import MonetaWatcher
 from moneta.pluginregistry import get_plugin_registry
 
 logger = logging.getLogger('moneta')
@@ -151,6 +152,13 @@ def run():
     logger.debug('Local config: %s', local_config)
 
     # Main
+    if args.watcher:
+        # Run in Watcher mode
+        logger.debug('Starting in Watcher mode')
+        watcher = MonetaWatcher()
+        watcher.run()
+        sys.exit(0)
+
     try:
         logger.debug('Starting')
 
