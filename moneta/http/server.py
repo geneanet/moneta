@@ -125,16 +125,17 @@ class HTTPServer(object):
                 body = fp.read(bodylength)
 
             # Processing
-            if self.request_log_level:
-                logger.log(self.request_log_level, "[%s] Processing request %s %s", repr(address), method, uri)
-                
+            logger.debug("[%s] Processing request %s %s", repr(address), method, uri)
             try:
                 request = HTTPRequest(method, uri, version, headers, body)
                 reply = self.handle_request(socket, address, request)
-                http_send_reply(socket, reply)
-            except BaseException, e:
-                http_send_reply(socket, HTTPReply(code = 500))
+            except BaseException:
+                reply = HTTPReply(code = 500)
                 raise
+            finally:
+                if self.request_log_level:
+                    logger.log(self.request_log_level, "[%s] Processed request %s %s. Return code %d.", repr(address), method, uri, reply.code)
+                http_send_reply(socket, reply)
 
             # Keep-alive
             if http_has_header(headers, 'connection'):
