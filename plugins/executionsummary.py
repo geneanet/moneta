@@ -37,7 +37,10 @@ class ExecutionSummaryPlugin(object):
         match = re.match('/tasks/([0-9a-z]+)/executionsummary', request.uri_path)
         task = match.group(1)
 
-        headers = { 'Content-Type': 'application/javascript' }
+        headers = {
+            'Content-Type': 'application/javascript',
+            'Access-Control-Allow-Origin': '*'
+        }
 
         try:
             (summary, stat) = self.cluster.zk.get('/moneta/executionsummary/%s' % (task))
@@ -48,7 +51,10 @@ class ExecutionSummaryPlugin(object):
 
     def handleTasksRequest(self, request):
         """Handle requests to /executionsummary"""
-        headers = { 'Content-Type': 'application/javascript' }
+        headers = {
+            'Content-Type': 'application/javascript',
+            'Access-Control-Allow-Origin': '*'
+        }
 
         tasks = {}
 

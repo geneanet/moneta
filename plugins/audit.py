@@ -281,7 +281,10 @@ class AuditPlugin(object):
         client = HTTPClient(addr)
         answer = client.request(HTTPRequest(uri = uri, method = 'GET', body = query))
 
-        headers = { 'Content-Type': 'application/javascript' }
+        headers = {
+            'Content-Type': 'application/javascript',
+            'Access-Control-Allow-Origin': '*'
+        }
 
         if answer.code == 200:
             data = json.loads(answer.body)
