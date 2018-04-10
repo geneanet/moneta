@@ -63,9 +63,8 @@ class MailerPlugin(object):
             mailerconfig = self.cluster.config.get('mailer')
 
             if mailerconfig['timezone']:
-                report['start_time'] = dateutil.parser.parse(report['start_time']).astimezone(dateutil.tz.gettz(mailerconfig['timezone']))
-                report['end_time'] = dateutil.parser.parse(report['end_time']).astimezone(dateutil.tz.gettz(mailerconfig['timezone']))
-                logger.debug("Report: %s", report)
+                report['start_time'] = report['start_time'].astimezone(dateutil.tz.gettz(mailerconfig['timezone']))
+                report['end_time'] = report['end_time'].astimezone(dateutil.tz.gettz(mailerconfig['timezone']))
 
             report['task_name'] = taskconfig['name']
             if 'tags' in taskconfig:
