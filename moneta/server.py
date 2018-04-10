@@ -593,6 +593,7 @@ class MonetaServer(HTTPServer):
 
         @apiParam {String}      :id             Task ID.
         @apiParam {String}      :target         Target for task execution ("local" to execute on the local node, otherwise execute on the nodes on which the task is configured to run).
+        @apiParam {Boolean}     :force          Force the execution even if the concurrency limit is reached.
 
         @apiSuccess {Boolean}   Executed The task has been executed.
         @apiSuccess {String}    id       ID of the task.
@@ -659,7 +660,7 @@ class MonetaServer(HTTPServer):
                 if 'target' in request.args and request.args['target'] == 'local':
                     self.manager.execute_task(task)
                 else:
-                    self.cluster.scheduler.run_task(task)
+                    self.cluster.scheduler.run_task(task, ignore_concurrency = 'force' in request.args)
 
                 return HTTPReply(code = 200, body = json.dumps({"id": task, "executed": True}), headers = headers)
             except ExecutionDisabled:
