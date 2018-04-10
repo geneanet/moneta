@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/local/bin/moneta --config /etc/moneta/config.yml
+ExecStart=/usr/local/bin/moneta --config /etc/moneta/config.yml --logconfig /etc/moneta/logging.conf
 StandardOutput=null
 KillMode=process
 Restart=on-failure
