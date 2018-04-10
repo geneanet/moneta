@@ -147,7 +147,7 @@ def run():
     if args.watcher:
         # Run in Watcher mode
         logger.debug('Starting in Watcher mode')
-        watcher = MonetaWatcher()
+        watcher = MonetaWatcher(local_config['nodename'])
         watcher.run()
         sys.exit(0)
 

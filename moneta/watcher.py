@@ -25,13 +25,14 @@ logger = logging.getLogger('moneta.watcher')
 class MonetaWatcher(object):
     """ Watch a process and send updates back to the manager. """
 
-    def __init__(self):
+    def __init__(self, nodename):
         """ Constructor """
 
         self.task = None
         self.taskconfig = {}
         self.processid = None
         self.manager = None
+        self.nodename = nodename
 
         self.report = {}
         self.exec_greenlet = None
@@ -82,6 +83,7 @@ class MonetaWatcher(object):
         # Initial report
         start = datetime.utcnow().replace(tzinfo = dateutil.tz.tzutc())
         self.report.update({
+            "node": self.nodename,
             "task": self.task,
             "pid": getpid(),
             "start_time": start,
