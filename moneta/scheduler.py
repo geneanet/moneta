@@ -77,27 +77,25 @@ class MonetaScheduler(object):
                         logger.exception("Encountered an exception while trying to match task %s schedules with current tick (TICK %d). The task may not be scheduled correctly.", task_id, this_tick)
 
                     if should_run:
-                        if 'concurrency' in task_config and task_config['concurrency'] > 0:
-                            processes = self.cluster.list_task_processes(task_id)
-                            if len(processes) < task_config['concurrency']:
-                                gevent.spawn(self.run_task, task_id)
-                            else:
-                                logger.warning('Task %s was scheduled to run but its maximum concurrency (%d) has been reached (%d running processes).', task_id, task_config['concurrency'], len(processes))
-                        else:
-                            gevent.spawn(self.run_task, task_id)
+                        gevent.spawn(self.run_task, task_id)
 
             self.cluster.update_last_tick(this_tick)
 
         except Exception, e:
             logger.exception("Encountered an exception in ticker (TICK %d). Some schedules may have been missed.", this_tick)
 
-    def  run_task(self, task):
+    def  run_task(self, task, ignore_concurrency = False):
         """ Run a job on the appropriate nodes """
 
         logger.info("Preparing to run task %s on appropriate nodes", task)
 
         try:
             task_config = self.cluster.config.get('tasks')[task]
+            enforce_concurrency = 'concurrency' in task_config and task_config['concurrency'] > 0 and not ignore_concurrency
+
+            if enforce_concurrency:
+                # Count currently running processes
+                running_processes_count = len(self.cluster.list_task_processes(task))
 
             if 'pools' in task_config:
                 pools = task_config['pools']
@@ -122,6 +120,10 @@ class MonetaScheduler(object):
 
             for node in nodes:
                 try:
+                    if enforce_concurrency and running_processes_count >= task_config['concurrency']:
+                        logger.warning("Maximum concurrency reached (%d) for task %s !", task_config['concurrency'], task)
+                        break
+
                     addr = parse_host_port(self.cluster.nodes[node]['address'])
                     client = HTTPClient(addr)
                     logger.info("Running task %s on node %s", task, node)
@@ -129,7 +131,10 @@ class MonetaScheduler(object):
 
                     get_plugin_registry().call_hook('TaskExecuted', task, node, ret.code == 200, ret.body)
 
-                    if ret.code != 200:
+                    if ret.code == 200:
+                        if enforce_concurrency:
+                            running_processes_count += 1
+                    else:
                         logger.error ("Node %s answered %d when asked to execute task %s !", node, ret.code, task)
 
                 except Exception:
