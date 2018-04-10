@@ -50,7 +50,7 @@ class MonetaWatcher(object):
         path = list(sys.argv)
         path.append('--watcher')
 
-        process = Popen(args = path, stdin = PIPE)
+        process = Popen(args = path, stdin = PIPE, preexec_fn = setsid)
         process.stdin.write(json.dumps({
             "manager": manager,
             "task": task,
