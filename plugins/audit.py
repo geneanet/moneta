@@ -5,7 +5,7 @@ from __future__ import absolute_import
 import logging
 
 import dateutil.tz
-import json
+from moneta import json
 import re
 from urlparse import urlparse
 from datetime import datetime

@@ -3,7 +3,7 @@
 from __future__ import absolute_import
 
 import logging
-import json
+from moneta import json
 from kazoo.exceptions import NoNodeError
 from moneta.http.http import HTTPReply
 import re

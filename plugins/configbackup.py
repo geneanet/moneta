@@ -3,7 +3,7 @@
 from __future__ import absolute_import
 
 import logging
-import json
+from moneta import json
 import yaml
 
 logger = logging.getLogger('moneta.plugins.configbackup')
