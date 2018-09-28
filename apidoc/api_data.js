@@ -191,7 +191,7 @@ define({ "api": [
     "title": "Get node status",
     "name": "GetNodeStatus",
     "group": "Node",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "success": {
       "fields": {
         "Success 200": [
@@ -255,7 +255,7 @@ define({ "api": [
             "group": "Success 200",
             "type": "String",
             "optional": false,
-            "field": "running_processes.process.started",
+            "field": "running_processes.process.start_time",
             "description": "<p>Time the process started, ISO 8601 formatted.</p>"
           },
           {
@@ -291,7 +291,7 @@ define({ "api": [
       "examples": [
         {
           "title": "Example response:",
-          "content": "{\n  \"execution_enabled\": true,\n  \"leader\": false,\n  \"name\": \"node2\",\n  \"scheduler_running\": false,\n  \"address\": \"127.0.0.1:32002\",\n  \"pools\": [\"pool1\", \"pool2\"],\n  \"running_processes\": {\n    \"b26e5cc2ef3f11e4817b0026b951c045\": {\n      \"started\": \"2015-04-30T13:49:18.351494+00:00\",\n      \"task\": \"508b4b72e44611e49e76c81f66cd0cca\"\n    }\n  },\n  \"cluster_joined\": true,\n  \"contending_for_lead\": true,\n  \"pools_joined\": true\n}",
+          "content": "{\n  \"execution_enabled\": true,\n  \"leader\": false,\n  \"name\": \"node2\",\n  \"scheduler_running\": false,\n  \"address\": \"127.0.0.1:32002\",\n  \"pools\": [\"pool1\", \"pool2\"],\n  \"running_processes\": {\n    \"b26e5cc2ef3f11e4817b0026b951c045\": {\n      \"start_time\": \"2015-04-30T13:49:18.351494+00:00\",\n      \"task\": \"508b4b72e44611e49e76c81f66cd0cca\"\n    }\n  },\n  \"cluster_joined\": true,\n  \"contending_for_lead\": true,\n  \"pools_joined\": true\n}",
           "type": "json"
         }
       ]
@@ -318,6 +318,38 @@ define({ "api": [
     },
     "filename": "./moneta/server.py",
     "groupTitle": "Node"
+  },
+  {
+    "type": "kill",
+    "url": "/processes/:id",
+    "title": "Kill a running process",
+    "name": "KillProcesses",
+    "group": "Processes",
+    "version": "1.1.0",
+    "parameter": {
+      "fields": {
+        "Parameter": [
+          {
+            "group": "Parameter",
+            "type": "String",
+            "optional": false,
+            "field": ":id",
+            "description": "<p>Process ID.</p>"
+          }
+        ]
+      }
+    },
+    "success": {
+      "examples": [
+        {
+          "title": "Example response:",
+          "content": "{\n  \"killed\": true,\n  \"id\": \"021b2092ef4111e481a852540064e600\"\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "filename": "./moneta/server.py",
+    "groupTitle": "Processes"
   },
   {
     "type": "delete",
@@ -502,6 +534,71 @@ define({ "api": [
     "groupTitle": "Tasks"
   },
   {
+    "type": "execute",
+    "url": "/task/:id",
+    "title": "Execute a task",
+    "name": "ExecuteTask",
+    "group": "Tasks",
+    "version": "1.1.0",
+    "description": "<p>Execute a task.</p>",
+    "parameter": {
+      "fields": {
+        "Parameter": [
+          {
+            "group": "Parameter",
+            "type": "String",
+            "optional": false,
+            "field": ":id",
+            "description": "<p>Task ID.</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "String",
+            "optional": false,
+            "field": ":target",
+            "description": "<p>Target for task execution (&quot;local&quot; to execute on the local node, otherwise execute on the nodes on which the task is configured to run).</p>"
+          },
+          {
+            "group": "Parameter",
+            "type": "Boolean",
+            "optional": false,
+            "field": ":force",
+            "description": "<p>Force the execution even if the concurrency limit is reached.</p>"
+          }
+        ]
+      }
+    },
+    "success": {
+      "fields": {
+        "Success 200": [
+          {
+            "group": "Success 200",
+            "type": "Boolean",
+            "optional": false,
+            "field": "Executed",
+            "description": "<p>The task has been executed.</p>"
+          },
+          {
+            "group": "Success 200",
+            "type": "String",
+            "optional": false,
+            "field": "id",
+            "description": "<p>ID of the task.</p>"
+          }
+        ]
+      },
+      "examples": [
+        {
+          "title": "Example response:",
+          "content": "{\n  \"deleted\": true,\n  \"id\": \"021b2092ef4111e481a852540064e600\"\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "filename": "./moneta/server.py",
+    "groupTitle": "Tasks"
+  },
+  {
     "type": "get",
     "url": "/tasks/:id",
     "title": "Get a task",
@@ -649,6 +746,88 @@ define({ "api": [
         {
           "title": "Example response:",
           "content": "{\n  \"021b2092ef4111e481a852540064e600\": {\n      \"name\": \"task 1\",\n      \"enabled\": true,\n      \"mode\": \"all\",\n      \"pools\": [\"web\"],\n      \"schedules\": [\n        {\"minute\": [\"*/5\"]}\n      ],\n      \"command\": \"/bin/task1\",\n  },\n  \"508b4b72e44611e49e76c81f66cd0cca\": {\n      \"name\": \"task 2\",\n      \"enabled\": false,\n      \"mode\": \"all\",\n      \"pools\": [\"pool2\"],\n      \"schedules\": [\n        {\"hours\": [15], \"minutes\": [0]}\n      ],\n      \"command\": \"/bin/task2\",\n  }\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "filename": "./moneta/server.py",
+    "groupTitle": "Tasks"
+  },
+  {
+    "type": "get",
+    "url": "/task/:id/running",
+    "title": "Check if a task is running",
+    "name": "IsTaskRunning",
+    "group": "Tasks",
+    "version": "1.1.0",
+    "parameter": {
+      "fields": {
+        "Parameter": [
+          {
+            "group": "Parameter",
+            "type": "String",
+            "optional": false,
+            "field": ":id",
+            "description": "<p>Task ID.</p>"
+          }
+        ]
+      }
+    },
+    "success": {
+      "fields": {
+        "Success 200": [
+          {
+            "group": "Success 200",
+            "type": "Boolean",
+            "optional": false,
+            "field": "running",
+            "description": "<p>The task is running.</p>"
+          },
+          {
+            "group": "Success 200",
+            "type": "String",
+            "optional": false,
+            "field": "id",
+            "description": "<p>ID of the task.</p>"
+          }
+        ]
+      },
+      "examples": [
+        {
+          "title": "Example response:",
+          "content": "{\n  \"running\": true,\n  \"id\": \"021b2092ef4111e481a852540064e600\"\n}",
+          "type": "json"
+        }
+      ]
+    },
+    "filename": "./moneta/server.py",
+    "groupTitle": "Tasks"
+  },
+  {
+    "type": "get",
+    "url": "/task/:id/processes",
+    "title": "List running processes for a task",
+    "name": "ListTaskProcesses",
+    "group": "Tasks",
+    "version": "1.1.0",
+    "parameter": {
+      "fields": {
+        "Parameter": [
+          {
+            "group": "Parameter",
+            "type": "String",
+            "optional": false,
+            "field": ":id",
+            "description": "<p>Task ID.</p>"
+          }
+        ]
+      }
+    },
+    "success": {
+      "examples": [
+        {
+          "title": "Example response:",
+          "content": "{\n    \"021b2092ef4111e481a852540064e600\" : {\n        \"node\": \"node1\",\n        \"start_time\": \"2018-03-29T15:01:13.465183+00:00\",\n        \"task\": \"e4d07482e44711e49e76c81f66cd0cca\"\n    },\n    \"253a96e29868135d746989a6123f521e\" : {\n        \"node\": \"node2\",\n        \"start_time\": \"2018-03-29T14:01:13.352067+00:00\",\n        \"task\": \"508b4b72e44611e49e76c81f66cd0cca\"\n    },\n    ...\n}",
           "type": "json"
         }
       ]

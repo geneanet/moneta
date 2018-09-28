@@ -1,13 +1,14 @@
 {
   "name": "Moneta",
-  "version": "1.0.0",
+  "version": "1.1.1",
   "description": "Fault-tolerant distributed tasks scheduler",
   "sampleUrl": false,
-  "apidoc": "0.2.0",
+  "defaultVersion": "0.0.0",
+  "apidoc": "0.3.0",
   "generator": {
     "name": "apidoc",
-    "time": "2016-11-02T15:51:38.798Z",
+    "time": "2018-09-28T14:32:05.467Z",
     "url": "http://apidocjs.com",
-    "version": "0.16.1"
+    "version": "0.17.6"
   }
 }
