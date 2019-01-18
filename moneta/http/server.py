@@ -180,9 +180,6 @@ class HTTPServer(object):
         # Fold multiple / in URL
         request.uri_path = re.sub(r'/+', r'/', request.uri_path)
 
-        # Remove ending /
-        request.uri_path = re.sub(r'(.)/$', r'\1', request.uri_path)
-
         try:
             reply = HTTPReply(code = 404)
 
