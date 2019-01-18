@@ -2,3 +2,4 @@
 build/
 dist/
 moneta_scheduler.egg-info/
+.vscode
