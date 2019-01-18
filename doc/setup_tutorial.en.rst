@@ -124,7 +124,7 @@ In our example, for simplicity, we will use only a single machine, so there will
 
     config:
       configbackup:
-        path: /car/lib/moneta/config-backup.json
+        path: /var/lib/moneta/config-backup.json
         format: json
 
     pools:
