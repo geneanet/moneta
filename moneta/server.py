@@ -247,23 +247,23 @@ class MonetaServer(HTTPServer):
             try:
                 return HTTPReply(body = json.dumps(self.cluster.config.get(name)), headers = headers)
             except KeyError:
-                return HTTPReply(code = 404, headers = {'Access-Control-Allow-Origin', '*'})
+                return HTTPReply(code = 404, headers = {'Access-Control-Allow-Origin': '*'})
 
         elif request.method == "PUT":
             try:
                 self.cluster.config.set(name, json.loads(request.body))
-                return HTTPReply(code = 204, headers = {'Access-Control-Allow-Origin', '*'})
+                return HTTPReply(code = 204, headers = {'Access-Control-Allow-Origin': '*'})
             except (ValueError, TypeError) as error:
-                return HTTPReply(code = 400, message = str(error), headers = {'Access-Control-Allow-Origin', '*'})
+                return HTTPReply(code = 400, message = str(error), headers = {'Access-Control-Allow-Origin': '*'})
             except KeyError:
-                return HTTPReply(code = 404, headers = {'Access-Control-Allow-Origin', '*'})
+                return HTTPReply(code = 404, headers = {'Access-Control-Allow-Origin': '*'})
 
         elif request.method == "DELETE":
             try:
                 self.cluster.config.clear(name)
-                return HTTPReply(code = 204, headers = {'Access-Control-Allow-Origin', '*'})
+                return HTTPReply(code = 204, headers = {'Access-Control-Allow-Origin': '*'})
             except KeyError:
-                return HTTPReply(code = 404, headers = {'Access-Control-Allow-Origin', '*'})
+                return HTTPReply(code = 404, headers = {'Access-Control-Allow-Origin': '*'})
 
     def handle_tags(self, request):
         """Handle requests to /tags"""
@@ -620,7 +620,7 @@ class MonetaServer(HTTPServer):
             if task in tasks:
                 return HTTPReply(code = 200, body = json.dumps(tasks[task]), headers = headers)
             else:
-                return HTTPReply(code = 404, headers = {'Access-Control-Allow-Origin', '*'})
+                return HTTPReply(code = 404, headers = {'Access-Control-Allow-Origin': '*'})
 
         elif request.method == "PUT":
             new = json.loads(request.body)
@@ -653,7 +653,7 @@ class MonetaServer(HTTPServer):
 
                 return HTTPReply(code = 204, body = json.dumps({"id": task, "deleted": True}), headers = headers)
             else:
-                return HTTPReply(code = 404, headers = {'Access-Control-Allow-Origin', '*'})
+                return HTTPReply(code = 404, headers = {'Access-Control-Allow-Origin': '*'})
 
         if request.method == "EXECUTE":
             try:
@@ -729,7 +729,7 @@ class MonetaServer(HTTPServer):
             return HTTPReply(code = code, body = body, headers = headers)
         else:
             headers = {
-                'Access-Control-Allow-Origin', '*'
+                'Access-Control-Allow-Origin': '*'
             }
             return HTTPReply(code = 404, headers = headers)
 
