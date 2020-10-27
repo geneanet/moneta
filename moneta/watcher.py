@@ -5,16 +5,16 @@ from __future__ import absolute_import
 import logging
 import gevent
 from gevent import Greenlet, GreenletExit, sleep
-from gevent.subprocess import Popen
+from gevent.subprocess import Popen, PIPE
 from datetime import datetime, timedelta
 import dateutil.tz
 from os import setgid, setuid, setgroups, chdir, environ, getpid, setsid, killpg, getpgid
 from pwd import getpwnam
 from grp import getgrnam
 from locale import getpreferredencoding
-from subprocess import PIPE
 import sys
 import signal
+from collections import deque
 
 from moneta import json
 from moneta.http.client import HTTPClient
@@ -207,7 +207,43 @@ class MonetaWatcher(object):
             # Run process
             process = Popen(args = args, shell = True, preexec_fn = drop_privileges, stdout = PIPE, stderr = PIPE, env = env)
 
-            (stdout, stderr) = process.communicate()
+            output = {
+                'buffer': deque(maxlen=1000),
+                'bytes': {
+                    'stdout': 0,
+                    'stderr': 0
+                }
+            }
+
+            def read_output(stream, tag, output):
+                try:
+                    while True:
+                        data = stream.readline(10000)
+                        if data == '':
+                            logger.debug('Got EOF on %s', tag)
+                            return
+                        else:
+                            now = datetime.utcnow().replace(tzinfo = dateutil.tz.tzutc())
+                            decoded_data = self.decodestring(data).rstrip()
+                            output['bytes'][tag] += len(data)
+                            output['buffer'].append((now, tag, decoded_data))
+                            logger.debug('Got "%s" on %s', decoded_data, tag)
+                        gevent.idle()
+                except RuntimeError as e:
+                    logger.debug('Got error %s while reading %s', e, tag)
+                    return            
+
+            stdout_greenlet = gevent.spawn(read_output, process.stdout, 'stdout', output)
+            stderr_greenlet = gevent.spawn(read_output, process.stderr, 'stderr', output)
+
+            gevent.joinall([stdout_greenlet, stderr_greenlet])
+            process.wait()
+
+            process.stdout.close()
+            process.stderr.close()
+
+            output['buffer'] = list(output['buffer'])
+            output['buffer_lines'] = len(output['buffer'])
             returncode = process.returncode
 
             if returncode == 0:
@@ -215,30 +251,10 @@ class MonetaWatcher(object):
             else:
                 status = "error"
 
-            def decodestring(string, encoding = None):
-                """ Decode a string to utf-8. If encoding is not specified, try several ones, and finally fallback on ascii. """
-                try:
-                    if encoding:
-                        return string.decode(encoding, 'replace')
-
-                    else:
-                        encodings = [ getpreferredencoding(), 'utf-8', 'iso-8859-1' ]
-
-                        for encoding in encodings:
-                            try:
-                                return string.decode(encoding)
-
-                            except UnicodeDecodeError:
-                                continue
-
-                except UnicodeError:
-                    return string.decode('ascii', 'replace')
-
             self.report.update({
                 "status": status,
                 "returncode": returncode,
-                "stdout": decodestring(stdout),
-                "stderr": decodestring(stderr)
+                "output": output
             })
 
         except GreenletExit:
@@ -262,4 +278,24 @@ class MonetaWatcher(object):
                 "error": str(e)
             })
 
-    
+    def decodestring(self, string, encoding = None):
+        """ Decode a string to utf-8. If encoding is not specified, try several ones, and finally fallback on ascii. """
+        try:
+            if encoding:
+                return string.decode(encoding, 'replace')
+
+            else:
+                encodings = [ getpreferredencoding(), 'utf-8', 'iso-8859-1' ]
+
+                for encoding in encodings:
+                    try:
+                        return string.decode(encoding)
+
+                    except UnicodeDecodeError:
+                        continue
+
+        except UnicodeError:
+            return string.decode('ascii', 'replace')
+        
+        return string.decode('ascii', 'replace')
+        

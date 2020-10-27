@@ -72,12 +72,9 @@ class MailerPlugin(object):
 
             if not ('mailreport' in taskconfig and (
                     (taskconfig['mailreport'] == 'error' and report['status'] != 'ok')
-                    or (taskconfig['mailreport'] == 'stdout' and 'stdout' in report and report['stdout'])
-                    or (taskconfig['mailreport'] == 'stderr' and 'stderr' in report and report['stderr'])
-                    or (taskconfig['mailreport'] == 'output' and (
-                        ('stderr' in report and report['stderr'])
-                        or ('stdout' in report and report['stdout'])
-                        ))
+                    or (taskconfig['mailreport'] == 'stdout' and report['output']['bytes']['stdout'] > 0)
+                    or (taskconfig['mailreport'] == 'stderr' and report['output']['bytes']['stderr'] > 0)
+                    or (taskconfig['mailreport'] == 'output' and len(report['output']['buffer']) > 0)
                     or taskconfig['mailreport'] == 'always'
                 )):
                 return
@@ -114,27 +111,21 @@ class MailerPlugin(object):
             else:
                 msgbody += "Return code: {report[returncode]}\n"
 
-                if report['stdout']:
+                if len(report['output']['buffer']):
                     msgbody += dedent(
                         """\
 
-                        stdout :
-                        -------------------------------------------------------------------------------
-                        {report[stdout]}
-                        -------------------------------------------------------------------------------
-                        """)
+                        Program produced {report[output][bytes][stdout]} bytes on stdout and {report[output][bytes][stderr]} bytes on stderr.
 
-                if report['stderr']:
-                    msgbody += dedent(
-                        """\
-
-                        stderr :
+                        Last {report[output][buffer_lines]} lines of output :
                         -------------------------------------------------------------------------------
-                        {report[stderr]}
+                        {report[output][formatted]}
                         -------------------------------------------------------------------------------
                         """)
 
             # Message
+
+            report['output']['formatted'] = '\n'.join(('%s | %s | %s' % (line[0].astimezone(dateutil.tz.gettz(mailerconfig['timezone'])) if 'timezone' in mailerconfig else line[0], line[1], line[2]) for line in report['output']['buffer']))
 
             msg = MIMEText(msgbody.format(task = taskconfig, report = report), "plain", "utf-8")
 
