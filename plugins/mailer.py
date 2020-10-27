@@ -62,7 +62,7 @@ class MailerPlugin(object):
             taskconfig = self.cluster.config.get('tasks')[task]
             mailerconfig = self.cluster.config.get('mailer')
 
-            if mailerconfig['timezone']:
+            if 'timezone' in mailerconfig:
                 report['start_time'] = report['start_time'].astimezone(dateutil.tz.gettz(mailerconfig['timezone']))
                 report['end_time'] = report['end_time'].astimezone(dateutil.tz.gettz(mailerconfig['timezone']))
 
