@@ -91,6 +91,9 @@ def run():
     if not 'listen' in local_config or not local_config['listen']:
         local_config['listen'] = "127.0.0.1:32000"
 
+    if not 'manager_listen' in local_config or not local_config['manager_listen']:
+        local_config['manager_listen'] = "127.0.0.1:32001"
+
     if not 'zookeeper' in local_config or not local_config['zookeeper']:
         local_config['zookeeper'] = ["127.0.0.1:2181"]
 
@@ -163,7 +166,7 @@ def run():
 
         # Instanciate Cluster, Manager and Server
         cluster = MonetaCluster(local_config['nodename'], local_config['listen'], ','.join(local_config['zookeeper']), pools = local_config['pools'], contend_for_lead = local_config['leader'])
-        manager = MonetaManager(cluster)
+        manager = MonetaManager(cluster, local_config['manager_listen'])
         server = MonetaServer(cluster, manager, local_config['listen'])
 
         # Load Plugins
