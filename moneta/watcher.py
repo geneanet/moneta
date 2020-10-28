@@ -215,22 +215,22 @@ class MonetaWatcher(object):
                 }
             }
 
-            def read_output(stream, tag, output):
+            def read_output(handle, channel, output):
                 try:
                     while True:
-                        data = stream.readline(10000)
+                        data = handle.readline(10000)
                         if data == '':
-                            logger.debug('Got EOF on %s', tag)
+                            logger.debug('Got EOF on %s', channel)
                             return
                         else:
                             now = datetime.utcnow().replace(tzinfo = dateutil.tz.tzutc())
                             decoded_data = self.decodestring(data).rstrip()
-                            output['bytes'][tag] += len(data)
-                            output['buffer'].append((now, tag, decoded_data))
-                            logger.debug('Got "%s" on %s', decoded_data, tag)
+                            output['bytes'][channel] += len(data)
+                            output['buffer'].append({'time': now, 'channel': channel, 'text': decoded_data})
+                            logger.debug('Got "%s" on %s', decoded_data, channel)
                         gevent.idle()
                 except RuntimeError as e:
-                    logger.debug('Got error %s while reading %s', e, tag)
+                    logger.debug('Got error %s while reading %s', e, channel)
                     return            
 
             stdout_greenlet = gevent.spawn(read_output, process.stdout, 'stdout', output)
@@ -243,7 +243,6 @@ class MonetaWatcher(object):
             process.stderr.close()
 
             output['buffer'] = list(output['buffer'])
-            output['buffer_lines'] = len(output['buffer'])
             returncode = process.returncode
 
             if returncode == 0:
@@ -298,4 +297,3 @@ class MonetaWatcher(object):
             return string.decode('ascii', 'replace')
         
         return string.decode('ascii', 'replace')
-        

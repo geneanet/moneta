@@ -9,8 +9,36 @@ import smtplib
 from textwrap import dedent
 import dateutil.tz
 import dateutil.parser
+from jinja2 import Environment
 
 logger = logging.getLogger('moneta.plugins.mailer')
+
+default_template  = dedent(
+    u'''\
+    -------------------------------------------------------------------------------
+    Task: {{ task.name }}
+    Command: {{ task.command }}
+    -------------------------------------------------------------------------------
+    Status: {{ report.status }}
+    Executed on node: {{ report.node }}
+    Started: {{ report.start_time|format_datetime }} (time zone {{ report.start_time|format_datetime('%Z') }})
+    Ended: {{ report.end_time|format_datetime }}
+    Duration: {{ report.duration }} seconds
+    {% if report.status == 'fail' -%}
+    Error: {{ report.error }}
+    {%- else -%}
+    Return code: {{ report.returncode }}
+    {%- endif %}
+    -------------------------------------------------------------------------------
+    {% if report.output.buffer|length > 0 -%}
+    Program produced {{ report.output.bytes.stdout }} bytes on stdout and {{ report.output.bytes.stderr }} bytes on stderr.
+    Last {{ report.output.buffer|length }} lines of output :
+    {% for line in report.output.buffer -%}
+    {{ line.time|format_datetime('%d/%m %X') }} | {{ line.channel }} | {{ line.text }}
+    {% endfor -%}
+    -------------------------------------------------------------------------------
+    {%- endif %}
+    ''')
 
 def getDependencies():
     """ Return modules that need to be injected to the plugin constructor """
@@ -32,7 +60,8 @@ class MailerPlugin(object):
         self.cluster.config.create_key('mailer', {
             'smtpserver': None,
             'sender': None,
-            'timezone': None
+            'timezone': None,
+            'template': default_template
         }, self.__validate_config)
 
         self.registry.register_hook('ReceivedReport', self.onReceivedReport)
@@ -62,10 +91,6 @@ class MailerPlugin(object):
             taskconfig = self.cluster.config.get('tasks')[task]
             mailerconfig = self.cluster.config.get('mailer')
 
-            if 'timezone' in mailerconfig:
-                report['start_time'] = report['start_time'].astimezone(dateutil.tz.gettz(mailerconfig['timezone']))
-                report['end_time'] = report['end_time'].astimezone(dateutil.tz.gettz(mailerconfig['timezone']))
-
             report['task_name'] = taskconfig['name']
             if 'tags' in taskconfig:
                 report['task_tags'] = taskconfig['tags']
@@ -90,44 +115,16 @@ class MailerPlugin(object):
             if not 'mailto' in taskconfig or not taskconfig['mailto']:
                 raise Exception("An email report should be delivered for task %s, but the task has no mailto parameter or mailto is empty." % task)
 
-            # Template
-
-            msgbody = dedent(
-                u"""\
-                Task: {task[name]}
-                -------------------------------------------------------------------------------
-                Command: {task[command]}
-                -------------------------------------------------------------------------------
-                Status: {report[status]}
-                Executed on node: {report[node]}
-                Started: {report[start_time]}
-                Ended: {report[end_time]}
-                Duration: {report[duration]} seconds
-                -------------------------------------------------------------------------------
-                """)
-
-            if report['status'] == "fail":
-                msgbody += "Error: {report[error]}\n"
-            else:
-                msgbody += "Return code: {report[returncode]}\n"
-
-                if len(report['output']['buffer']):
-                    msgbody += dedent(
-                        """\
-
-                        Program produced {report[output][bytes][stdout]} bytes on stdout and {report[output][bytes][stderr]} bytes on stderr.
-
-                        Last {report[output][buffer_lines]} lines of output :
-                        -------------------------------------------------------------------------------
-                        {report[output][formatted]}
-                        -------------------------------------------------------------------------------
-                        """)
-
             # Message
-
-            report['output']['formatted'] = '\n'.join(('%s | %s | %s' % (line[0].astimezone(dateutil.tz.gettz(mailerconfig['timezone'])) if 'timezone' in mailerconfig else line[0], line[1], line[2]) for line in report['output']['buffer']))
-
-            msg = MIMEText(msgbody.format(task = taskconfig, report = report), "plain", "utf-8")
+            env = Environment()
+            def format_datetime(dt, format='%x %X'):
+                if 'timezone' in mailerconfig and mailerconfig['timezone']:
+                    dt = dt.astimezone(dateutil.tz.gettz(mailerconfig['timezone']))
+                return dt.strftime(format)
+            env.filters['format_datetime'] = format_datetime
+            template = env.from_string(mailerconfig['template'] if ('template' in mailerconfig and mailerconfig['template']) else default_template)
+            mail_body = template.render(task = taskconfig, report = report)
+            msg = MIMEText(mail_body, "plain", "utf-8")
 
             mailto = taskconfig['mailto']
             if isinstance(mailto, str) or isinstance(mailto, unicode):
@@ -148,4 +145,5 @@ class MailerPlugin(object):
             s.quit()
 
         except Exception, e:
+            logger.exception(e)
             logger.error('An error has been encountered while sending a report by mail (%s)', str(e))
