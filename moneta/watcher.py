@@ -43,6 +43,9 @@ class MonetaWatcher(object):
         self.notify_delay = 1
         self.giveup_notify_after = 10
 
+        self.output_buffer_lines = 1000
+        self.output_buffer_line_size = 10000
+
     @staticmethod
     def spawn(processid, task, taskconfig, manager):
         """ Spawn a new watcher in another process """
@@ -208,7 +211,7 @@ class MonetaWatcher(object):
             process = Popen(args = args, shell = True, preexec_fn = drop_privileges, stdout = PIPE, stderr = PIPE, env = env)
 
             output = {
-                'buffer': deque(maxlen=1000),
+                'buffer': deque(maxlen=self.output_buffer_lines),
                 'bytes': {
                     'stdout': 0,
                     'stderr': 0
@@ -218,7 +221,7 @@ class MonetaWatcher(object):
             def read_output(handle, channel, output):
                 try:
                     while True:
-                        data = handle.readline(10000)
+                        data = handle.readline(self.output_buffer_line_size)
                         if data == '':
                             logger.debug('Got EOF on %s', channel)
                             return
