@@ -99,12 +99,12 @@ class AuditPlugin(object):
 
         return (addr, path, index)
 
-    def __send_elasticsearch_record(self, recordtype, record):
+    def __send_elasticsearch_record(self, record):
         """ Send a new record to ES """
         (addr, path, index) = self.__get_elasticsearch_config()
 
         client = HTTPClient(addr)
-        ret = client.request(HTTPRequest(uri = "%s%s/%s" % (path, index, recordtype), method = 'POST', body = json.dumps(record)))
+        ret = client.request(HTTPRequest(uri = "%s%s/_doc/" % (path, index), method = 'POST', body = json.dumps(record), headers={'Content-Type': 'application/json'}))
 
         if ret.code > 400:
             raise Exception("Unable to log in ElasticSearch: Response code %d (%s)" % (ret.code, ret.body))
@@ -113,13 +113,14 @@ class AuditPlugin(object):
         """ Hook called when a task is created """
         try:
             record = {
+                'event_type': 'moneta-task-created',
                 'task': task,
                 '@timestamp': datetime.utcnow().replace(tzinfo = dateutil.tz.tzutc()).isoformat(),
                 '@level': 'info',
                 'config': config
             }
 
-            self.__send_elasticsearch_record('moneta-task-created', record)
+            self.__send_elasticsearch_record(record)
 
         except Exception, e:
             logger.error('An error has been encountered while storing record in ElasticSearch (%s)', str(e))
@@ -128,6 +129,7 @@ class AuditPlugin(object):
         """ Hook called when a task is updated """
         try:
             record = {
+                'event_type': 'moneta-task-updated',
                 'task': task,
                 '@timestamp': datetime.utcnow().replace(tzinfo = dateutil.tz.tzutc()).isoformat(),
                 '@level': 'info',
@@ -135,7 +137,7 @@ class AuditPlugin(object):
                 'oldconfig': oldconfig
             }
 
-            self.__send_elasticsearch_record('moneta-task-updated', record)
+            self.__send_elasticsearch_record(record)
 
         except Exception, e:
             logger.error('An error has been encountered while storing record in ElasticSearch (%s)', str(e))
@@ -144,13 +146,14 @@ class AuditPlugin(object):
         """ Hook called when a task is deleted """
         try:
             record = {
+                'event_type': 'moneta-task-deleted',
                 'task': task,
                 '@level': 'info',
                 '@timestamp': datetime.utcnow().replace(tzinfo = dateutil.tz.tzutc()).isoformat(),
                 'config': config
             }
 
-            self.__send_elasticsearch_record('moneta-task-deleted', record)
+            self.__send_elasticsearch_record(record)
 
         except Exception, e:
             logger.error('An error has been encountered while storing record in ElasticSearch (%s)', str(e))
@@ -159,6 +162,7 @@ class AuditPlugin(object):
         """ Hook called when the master has contacted a node to execute a task """
         try:
             record = {
+                'event_type': 'moneta-task-execution',
                 'task': task,
                 '@timestamp': datetime.utcnow().replace(tzinfo = dateutil.tz.tzutc()).isoformat(),
                 'node': node,
@@ -171,7 +175,7 @@ class AuditPlugin(object):
             else:
                 record['@level'] = 'alert'
 
-            self.__send_elasticsearch_record('moneta-task-execution', record)
+            self.__send_elasticsearch_record(record)
 
         except Exception, e:
             logger.error('An error has been encountered while storing record in ElasticSearch (%s)', str(e))
@@ -195,7 +199,9 @@ class AuditPlugin(object):
             else:
                 record['@level'] = 'alert'
 
-            self.__send_elasticsearch_record('moneta-task-report', record)
+            record['event_type'] = 'moneta-task-report'
+
+            self.__send_elasticsearch_record(record)
 
         except Exception, e:
             logger.error('An error has been encountered while storing record in ElasticSearch (%s)', str(e))
@@ -244,20 +250,40 @@ class AuditPlugin(object):
         uri = "%s%s/_search?ignore_unavailable=true&allow_no_indices=true&size=%d&from=%d" % (path, index, limit, offset)
         query = {
             "query": {
-                "bool": { "must": [
-                    { "range": { "@timestamp": { "gte": dtfrom.isoformat(), "lte": dtuntil.isoformat()} } }
-                ] }
+                "bool": {
+                    "must": [],
+                    "filter": [
+                        {
+                            "match_all": {}
+                        },
+                        {
+                            "range": {
+                                "@timestamp": {
+                                "gte": dtfrom.isoformat(),
+                                "lte": dtuntil.isoformat()
+                            }
+                        }
+                        }
+                    ],
+                    "should": [],
+                    "must_not": []
+                }
             },
             "aggs": {
                 "levels": {
-                    "terms": {"field": "@level"}
+                    "terms": {"field": "@level.keyword"}
                 },
                 "types": {
-                    "terms": {"field": "_type"}
+                    "terms": {"field": "event_type.keyword"}
                 }
             },
             "sort": [
-                { '@timestamp': "desc" }
+                {
+                    "@timestamp": {
+                        "order": "desc",
+                        "unmapped_type": "boolean"
+                    }
+                }
             ],
             "post_filter": {
                 "bool": { "must": [] }
@@ -268,10 +294,10 @@ class AuditPlugin(object):
             query['query']['bool']['must'].append({ "term": { "task": { "value": task } } })
 
         if level:
-            query['post_filter']['bool']['must'].append({ "terms": { "@level": level } })
+            query['post_filter']['bool']['must'].append({ "terms": { "@level.keyword": level } })
 
         if eventtype:
-            query['post_filter']['bool']['must'].append({ "terms": { "_type": eventtype } })
+            query['post_filter']['bool']['must'].append({ "terms": { "event_type.keyword": eventtype } })
 
         query = json.dumps(query)
 
@@ -279,7 +305,7 @@ class AuditPlugin(object):
         logger.debug("ES Query:\n%s", query)
 
         client = HTTPClient(addr)
-        answer = client.request(HTTPRequest(uri = uri, method = 'GET', body = query))
+        answer = client.request(HTTPRequest(uri = uri, method = 'GET', body = query, headers = {'Content-Type': 'application/json'}))
 
         headers = {
             'Content-Type': 'application/javascript',
