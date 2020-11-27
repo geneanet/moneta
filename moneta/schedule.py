@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
+
 
 import datetime
 import re
@@ -83,7 +83,7 @@ class Schedule(object):
             else:
                 return list(set(out))
 
-        elif isinstance(data, str) or isinstance(data, unicode):
+        elif isinstance(data, str):
             if data == '':
                 return None
 
@@ -99,7 +99,7 @@ class Schedule(object):
                 return Schedule.__expand(data.split(','), minimum, maximum)
 
             elif range_re:
-                return range(int(range_re.group('min')), int(range_re.group('max')) + 1)
+                return list(range(int(range_re.group('min')), int(range_re.group('max')) + 1))
 
             elif wildcard_re:
                 if wildcard_re.group('step'):
@@ -107,7 +107,7 @@ class Schedule(object):
                 else:
                     step = 1
 
-                return range(minimum, maximum + 1, step)
+                return list(range(minimum, maximum + 1, step))
 
             else:
                 raise Exception('Unable to parse schedule: %s', data)

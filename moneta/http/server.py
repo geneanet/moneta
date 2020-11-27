@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
+
 
 from gevent.server import StreamServer
 from gevent import sleep
@@ -156,7 +156,7 @@ class HTTPServer(object):
         if not hasattr(controller, '__call__'):
             raise TypeError("Controller must be callable")
 
-        if isinstance(methods, (str, unicode)):
+        if isinstance(methods, str):
             methods = { methods }
 
         if not isinstance(methods, set):
@@ -183,7 +183,7 @@ class HTTPServer(object):
         try:
             reply = HTTPReply(code = 404)
 
-            for ((route, method), routeconfig) in self.routes.iteritems():
+            for ((route, method), routeconfig) in self.routes.items():
                 match = routeconfig['regex'].match(request.uri_path)
                 if match:
                     if request.method == method:
@@ -193,7 +193,7 @@ class HTTPServer(object):
                     else:
                         reply = HTTPReply(code = 405)
 
-        except Exception, e:
+        except Exception as e:
             logger.exception("Caught exception while handling request %s %s", request.method, request.uri)
             reply = HTTPReply(code = 500, body = json.dumps({"error": True, "message": repr(e), "traceback": traceback.format_exc()}), headers = { 'Content-Type': 'application/javascript' })
 

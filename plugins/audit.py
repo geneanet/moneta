@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
+
 
 import logging
 
 import dateutil.tz
 from moneta import json
 import re
-from urlparse import urlparse
+from urllib.parse import urlparse
 from datetime import datetime
 from dateutil import rrule
 
@@ -122,7 +122,7 @@ class AuditPlugin(object):
 
             self.__send_elasticsearch_record(record)
 
-        except Exception, e:
+        except Exception as e:
             logger.error('An error has been encountered while storing record in ElasticSearch (%s)', str(e))
 
     def onTaskUpdated(self, task, oldconfig, newconfig):
@@ -139,7 +139,7 @@ class AuditPlugin(object):
 
             self.__send_elasticsearch_record(record)
 
-        except Exception, e:
+        except Exception as e:
             logger.error('An error has been encountered while storing record in ElasticSearch (%s)', str(e))
 
     def onTaskDeleted(self, task, config):
@@ -155,7 +155,7 @@ class AuditPlugin(object):
 
             self.__send_elasticsearch_record(record)
 
-        except Exception, e:
+        except Exception as e:
             logger.error('An error has been encountered while storing record in ElasticSearch (%s)', str(e))
 
     def onTaskExecuted(self, task, node, success, message = ""):
@@ -177,7 +177,7 @@ class AuditPlugin(object):
 
             self.__send_elasticsearch_record(record)
 
-        except Exception, e:
+        except Exception as e:
             logger.error('An error has been encountered while storing record in ElasticSearch (%s)', str(e))
 
     def onReceivedReport(self, report):
@@ -203,7 +203,7 @@ class AuditPlugin(object):
 
             self.__send_elasticsearch_record(record)
 
-        except Exception, e:
+        except Exception as e:
             logger.error('An error has been encountered while storing record in ElasticSearch (%s)', str(e))
 
     def handleAuditLogRequest(self, request):

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
+
 
 from kazoo.client import KazooClient, KazooState
 from kazoo.handlers.gevent import SequentialGeventHandler
@@ -325,11 +325,11 @@ class MonetaCluster(object):
         """ Ask every node in the cluster for its status and return a summary of running processes """
         processes = {}
 
-        for nodename in self.nodes.iterkeys():
+        for nodename in self.nodes.keys():
             logger.debug("Asking node %s for status", nodename)
             response = self.query_node(nodename, uri = '/status')
             if response['code'] == 200:
-                for (processid, processdata) in response['data']['running_processes'].iteritems():
+                for (processid, processdata) in response['data']['running_processes'].items():
                     processes[processid] = processdata
                     processes[processid]['node'] = nodename
             else:
@@ -342,7 +342,7 @@ class MonetaCluster(object):
         tasks = set()
         processes = self.list_running_processes()
         
-        for process in processes.itervalues():
+        for process in processes.values():
             tasks.add(process['task'])
         return tasks
 
@@ -352,6 +352,6 @@ class MonetaCluster(object):
 
     def list_task_processes(self, task):
         """ List the running processes for a task """
-        processes = { processid:processdata for (processid,processdata) in self.list_running_processes().iteritems() if processdata['task'] == task }
+        processes = { processid:processdata for (processid,processdata) in self.list_running_processes().items() if processdata['task'] == task }
         return processes
         

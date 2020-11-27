@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
+
 
 import logging
 import gevent
@@ -126,7 +126,7 @@ class MonetaWatcher(object):
                 sleep(1)
 
         # If we catch an exception, still try notify the manager
-        except Exception, e:
+        except Exception as e:
             # Update the report and send it
             now = datetime.utcnow().replace(tzinfo = dateutil.tz.tzutc())
             self.report.update({
@@ -272,7 +272,7 @@ class MonetaWatcher(object):
                 "error": "killed"
             })
 
-        except Exception, e:
+        except Exception as e:
             logger.exception("Encountered an exception while running task %s", self.task)
 
             self.report.update({

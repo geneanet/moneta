@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
+
 
 import logging
 from moneta import json
@@ -46,5 +46,5 @@ class ConfigBackupPlugin(object):
                     f.write(json.dumps(config.get_config()))
                 elif self.format == 'yaml':
                     f.write(yaml.safe_dump(config.get_config()))
-        except Exception, e:
+        except Exception as e:
             logger.error('Unable to backup configuration in format %s to file %s (%s)', self.format, self.path, str(e))

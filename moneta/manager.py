@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
+
 
 import logging
 from datetime import datetime, timedelta
@@ -65,7 +65,7 @@ class MonetaManager(HTTPServer):
         data['last_update'] = datetime.utcnow().replace(tzinfo = dateutil.tz.tzutc())
 
         # Update the running process list with received data
-        if self.running_processes.has_key(processid):
+        if processid in self.running_processes:
             logger.debug('Received update from process %s.', processid)
             self.running_processes[processid].update(data)
         else:
@@ -73,7 +73,7 @@ class MonetaManager(HTTPServer):
             self.running_processes[processid] = data
         
         # The task has finished, send the report to the leader
-        if data.has_key('finished') and data['finished']:
+        if 'finished' in data and data['finished']:
             logger.info("Reporting process %s (task %s) execution report to leader", processid, data['task'])
             ret = self.cluster.query_node(self.cluster.leader, uri = '/tasks/%s/report' % data['task'], method = 'POST', body = data)
             if ret['code'] != 200:
