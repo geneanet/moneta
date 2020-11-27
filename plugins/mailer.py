@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
+
 
 import logging
 
@@ -14,7 +14,7 @@ from jinja2 import Environment
 logger = logging.getLogger('moneta.plugins.mailer')
 
 default_template  = dedent(
-    u'''\
+    '''\
     -------------------------------------------------------------------------------
     Task: {{ task.name }}
     Command: {{ task.command }}
@@ -127,10 +127,10 @@ class MailerPlugin(object):
             msg = MIMEText(mail_body, "plain", "utf-8")
 
             mailto = taskconfig['mailto']
-            if isinstance(mailto, str) or isinstance(mailto, unicode):
+            if isinstance(mailto, str):
                 mailto = [ mailto ]
 
-            msg['Subject'] = u"Execution Report - Task %s (status: %s)" % (taskconfig['name'], report['status'])
+            msg['Subject'] = "Execution Report - Task %s (status: %s)" % (taskconfig['name'], report['status'])
             msg['From'] = mailerconfig['sender']
             msg['To'] = ",".join(mailto)
 
@@ -144,6 +144,6 @@ class MailerPlugin(object):
             s.sendmail(mailerconfig['sender'], mailto, msg.as_string())
             s.quit()
 
-        except Exception, e:
+        except Exception as e:
             logger.exception(e)
             logger.error('An error has been encountered while sending a report by mail (%s)', str(e))

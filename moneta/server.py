@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
+
 
 import re
 import uuid
@@ -183,7 +183,7 @@ class MonetaServer(HTTPServer):
             'contending_for_lead': self.cluster.contending_for_lead,
 
             'execution_enabled': self.manager.enabled,
-            'running_processes': dict([ (execid, { 'task': details['task'], 'start_time': details['start_time'].isoformat() }) for (execid, details) in self.manager.running_processes.iteritems() ]),
+            'running_processes': dict([ (execid, { 'task': details['task'], 'start_time': details['start_time'].isoformat() }) for (execid, details) in self.manager.running_processes.items() ]),
 
             'scheduler_running': self.cluster.scheduler.running
         }
@@ -289,7 +289,7 @@ class MonetaServer(HTTPServer):
 
         tags = []
 
-        for task in self.cluster.config.get('tasks').itervalues():
+        for task in self.cluster.config.get('tasks').values():
             if 'tags' in task:
                 tags += task['tags']
 
@@ -436,7 +436,7 @@ class MonetaServer(HTTPServer):
             tasks  = self.cluster.config.get('tasks')
 
             if 'tag' in request.args and request.args['tag']:
-                tasks = dict( (taskid, task) for taskid, task in tasks.iteritems() if 'tags' in task and request.args['tag'] in task['tags'] )
+                tasks = dict( (taskid, task) for taskid, task in tasks.items() if 'tags' in task and request.args['tag'] in task['tags'] )
 
             return HTTPReply(code = 200, body = json.dumps(tasks), headers = headers)
 
@@ -444,7 +444,7 @@ class MonetaServer(HTTPServer):
             oldtasks  = self.cluster.config.get('tasks')
             self.cluster.config.set('tasks', {})
 
-            for (task, taskconfig) in oldtasks.iteritems():
+            for (task, taskconfig) in oldtasks.items():
                 get_plugin_registry().call_hook('TaskDeleted', task, taskconfig)
 
             return HTTPReply(code = 200, body = json.dumps({"deleted": True}), headers = headers)

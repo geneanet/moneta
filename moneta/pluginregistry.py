@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
+
 
 import logging
 from imp import find_module, load_module
@@ -42,7 +42,7 @@ class PluginRegistry(object):
                     raise Exception("Required dependency %s not found." % dependency)
 
             self.plugins[plugin_name] = module.init(config, *dependencies)
-        except Exception, e:
+        except Exception as e:
             raise Exception('Failed to load plugin %s (%s)' % (plugin_name, str(e)))
         else:
             logger.info('Loaded plugin %s', plugin_name)
@@ -87,7 +87,7 @@ class PluginRegistry(object):
 
     def get_plugins(self):
         """ Return a list of loaded plugins """
-        return self.plugins.keys()
+        return list(self.plugins.keys())
 
 
 pluginregistry = PluginRegistry()

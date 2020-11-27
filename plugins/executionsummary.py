@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
+
 
 import logging
 from moneta import json
@@ -86,5 +86,5 @@ class ExecutionSummaryPlugin(object):
             except NoNodeError:
                 self.cluster.zk.create('/moneta/executionsummary/%s' % (task), json.dumps(summary), makepath = True)
 
-        except Exception, e:
+        except Exception as e:
             logger.error('Cant update execution summary (%s)', str(e))

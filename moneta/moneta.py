@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
+
 
 import uuid
 import argparse
@@ -41,7 +41,7 @@ def run():
         try:
             with open(args.config, 'r') as f:
                 local_config = yaml.safe_load(f.read())
-        except Exception, e:
+        except Exception as e:
             raise Exception("Cant read config file %s (%s)", args.config, str(e))
     else:
         local_config = {}
@@ -192,7 +192,7 @@ def run():
         # Start the Server
         server.run_forever()
 
-    except SystemExit, e:
+    except SystemExit as e:
         logger.info('Termination requested.')
         cluster.stop()
         logger.info('Terminated.')

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
+
 
 import gevent
 import time
@@ -62,7 +62,7 @@ class MonetaScheduler(object):
             else:
                 logger.debug("TICK: last tick %d seconds ago (current interval %s to %s)", (this_tick - last_tick), datetime.fromtimestamp(last_tick).strftime("%H:%M:%S.%f"), datetime.fromtimestamp(this_tick).strftime("%H:%M:%S.%f"))
 
-                for (task_id, task_config) in self.cluster.config.get('tasks').iteritems():
+                for (task_id, task_config) in self.cluster.config.get('tasks').items():
                     should_run = False
 
                     try:
@@ -73,7 +73,7 @@ class MonetaScheduler(object):
                             if schedule.match_interval(datetime.fromtimestamp(last_tick), datetime.fromtimestamp(this_tick)):
                                 should_run = True
                                 break
-                    except Exception, e:
+                    except Exception as e:
                         logger.exception("Encountered an exception while trying to match task %s schedules with current tick (TICK %d). The task may not be scheduled correctly.", task_id, this_tick)
 
                     if should_run:
@@ -81,7 +81,7 @@ class MonetaScheduler(object):
 
             self.cluster.update_last_tick(this_tick)
 
-        except Exception, e:
+        except Exception as e:
             logger.exception("Encountered an exception in ticker (TICK %d). Some schedules may have been missed.", this_tick)
 
     def  run_task(self, task, ignore_concurrency = False):
@@ -140,5 +140,5 @@ class MonetaScheduler(object):
                 except Exception:
                     logger.exception("An exception occurred when trying to run task %s on node %s.", task, node)
 
-        except Exception, e:
+        except Exception as e:
             logger.exception("Encountered an exception while preparing to run task %s.", task)

@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
+
 
 import re
-import urllib
+import urllib.request, urllib.parse, urllib.error
 
 ErrorCodes = {
     100: "Continue",
@@ -94,7 +94,7 @@ def http_match_header(headers, header, value):
 def http_get_header(headers, header):
     header = header.lower()
 
-    for (name, value) in headers.iteritems():
+    for (name, value) in headers.items():
         if name.lower() == header:
             return value
 
@@ -125,7 +125,7 @@ class HTTPRequest(object):
                 for item in items:
                     if '=' in item:
                         (arg, value) = item.split('=')
-                        self.args[urllib.unquote_plus(arg)] = urllib.unquote_plus(value)
+                        self.args[urllib.parse.unquote_plus(arg)] = urllib.parse.unquote_plus(value)
                     else:
                         self.args[item] = True
 
@@ -133,7 +133,7 @@ class HTTPRequest(object):
             self.uri_path = self.uri
             self.uri_args = ""
 
-        self.uri_path = urllib.unquote(self.uri_path)
+        self.uri_path = urllib.parse.unquote(self.uri_path)
 
         if headers:
             self.headers = headers
