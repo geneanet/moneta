@@ -11,7 +11,7 @@ class Schedule(object):
     def __init__(self, month = None, week = None, dayofweek = None, dayofmonth = None, hour = None, minute = None):
         """ Constructor """
         self.month = self.__expand(month, 0, 12)
-        self.week = self.__expand(week, 0, 52)
+        self.week = self.__expand(week, 0, 53)
         self.dayofweek = self.__expand(dayofweek, 0, 7)
         self.dayofmonth = self.__expand(dayofmonth, 0, 31)
         self.hour = self.__expand(hour, 0, 23)
