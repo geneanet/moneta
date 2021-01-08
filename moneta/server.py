@@ -447,7 +447,7 @@ class MonetaServer(HTTPServer):
             for (task, taskconfig) in oldtasks.iteritems():
                 get_plugin_registry().call_hook('TaskDeleted', task, taskconfig)
 
-            return HTTPReply(code = 204, body = json.dumps({"deleted": True}), headers = headers)
+            return HTTPReply(code = 200, body = json.dumps({"deleted": True}), headers = headers)
 
         elif request.method == "POST":
             task = uuid.uuid1().hex
@@ -633,7 +633,7 @@ class MonetaServer(HTTPServer):
             self.cluster.config.set('tasks', tasks)
 
             if old:
-                code = 204
+                code = 200
                 body = json.dumps({"id": task, "updated": True})
                 get_plugin_registry().call_hook('TaskUpdated', task, old, new)
             else:
@@ -651,7 +651,7 @@ class MonetaServer(HTTPServer):
 
                 get_plugin_registry().call_hook('TaskDeleted', task, old)
 
-                return HTTPReply(code = 204, body = json.dumps({"id": task, "deleted": True}), headers = headers)
+                return HTTPReply(code = 200, body = json.dumps({"id": task, "deleted": True}), headers = headers)
             else:
                 return HTTPReply(code = 404, headers = {'Access-Control-Allow-Origin': '*'})
 
@@ -712,7 +712,7 @@ class MonetaServer(HTTPServer):
         tasks = self.cluster.config.get('tasks')
 
         if task in tasks:
-            code = 204
+            code = 200
 
             old = tasks[task].copy()
             tasks[task]['enabled'] = enabled
