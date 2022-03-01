@@ -60,7 +60,7 @@ class MonetaWatcher(object):
             "task": task,
             "processid": processid,
             "taskconfig": taskconfig
-        }))
+        }).encode())
         process.stdin.close()
         logger.debug('Process %s (task %s) spawned and configured.', processid, task)
 
@@ -223,15 +223,15 @@ class MonetaWatcher(object):
                 try:
                     while True:
                         data = handle.readline(self.output_buffer_line_size)
-                        if data == '':
-                            logger.debug('Got EOF on %s', channel)
-                            return
-                        else:
+                        if data:
                             now = datetime.utcnow().replace(tzinfo = dateutil.tz.tzutc())
                             decoded_data = self.decodestring(data).rstrip()
                             output['bytes'][channel] += len(data)
                             output['buffer'].append({'time': now, 'channel': channel, 'text': decoded_data})
                             logger.debug('Got "%s" on %s', decoded_data, channel)
+                        else:
+                            logger.debug('Got EOF on %s', channel)
+                            return
                         gevent.idle()
                 except RuntimeError as e:
                     logger.debug('Got error %s while reading %s', e, channel)
