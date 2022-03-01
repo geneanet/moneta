@@ -9,8 +9,8 @@ import re
 
 iso_datetime_regex = re.compile(r"^(\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d\.\d+([+-][0-2]\d:[0-5]\d|Z)?)|(\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d([+-][0-2]\d:[0-5]\d|Z)?)|(\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d([+-][0-2]\d:[0-5]\d|Z)?)$")
 
-def new_scanstring(s, end, encoding=None, strict=True):
-    (s, end) = json.decoder.scanstring(s, end, encoding, strict)
+def new_scanstring(s, end, strict=True):
+    (s, end) = json.decoder.scanstring(s, end, strict)
     if iso_datetime_regex.match(s):
         return (dateutil.parser.parse(s), end)
     else:
