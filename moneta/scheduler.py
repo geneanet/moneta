@@ -69,7 +69,7 @@ class MonetaScheduler(object):
                         if not 'enabled' in task_config or not task_config['enabled']:
                             continue
 
-                        for schedule in [ Schedule(**schedule) for schedule in task_config['schedules'] ]:
+                        for schedule in [ Schedule(**schedule) if schedule else Schedule() for schedule in task_config['schedules'] ]:
                             if schedule.match_interval(datetime.fromtimestamp(last_tick), datetime.fromtimestamp(this_tick)):
                                 should_run = True
                                 break
