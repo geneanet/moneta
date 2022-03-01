@@ -6,6 +6,7 @@ import logging
 import gevent
 from gevent import Greenlet, GreenletExit, sleep
 from gevent.subprocess import Popen, PIPE
+from gevent.hub import signal as signal_handler
 from datetime import datetime, timedelta
 import dateutil.tz
 from os import setgid, setuid, setgroups, chdir, environ, getpid, setsid, killpg, getpgid
@@ -73,7 +74,7 @@ class MonetaWatcher(object):
             # Kill the runnning process
             if self.exec_greenlet:
                 self.exec_greenlet.kill()
-        gevent.signal(signal.SIGTERM, handle_clean_exit)
+        signal_handler(signal.SIGTERM, handle_clean_exit)
 
         # Config
         logger.debug('Reading configuration')

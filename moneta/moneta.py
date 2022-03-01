@@ -7,7 +7,7 @@ import argparse
 import logging, logging.config
 import sys
 import signal
-import gevent
+from gevent.hub import signal as signal_handler
 import yaml
 
 from moneta.cluster import MonetaCluster
@@ -162,7 +162,7 @@ def run():
             """ Clean exit, currently running tasks will be left running """
             logger.info('Termination signal received.')
             sys.exit(0)
-        gevent.signal(signal.SIGTERM, handle_clean_exit)
+        signal_handler(signal.SIGTERM, handle_clean_exit)
 
         # Instanciate Cluster, Manager and Server
         cluster = MonetaCluster(local_config['nodename'], local_config['listen'], ','.join(local_config['zookeeper']), pools = local_config['pools'], contend_for_lead = local_config['leader'])
