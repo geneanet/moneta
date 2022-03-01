@@ -56,7 +56,7 @@ class HTTPServer(object):
 
         logger.debug("[%s:%d] Incoming connection", *address)
 
-        fp = socket.makefile()
+        fp = socket.makefile(mode='rw')
 
         keepalive = True
 

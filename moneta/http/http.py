@@ -64,21 +64,27 @@ def parse_host_port(addr, default_port = None):
     return (host, port)
 
 def http_send_request(socket, request):
-    fp = socket.makefile()
-    fp.write("%s %s %s\r\n" % (request.method, request.uri, request.version))
+    fp = socket.makefile(mode='rwb')
+    fp.write(("%s %s %s\r\n" % (request.method, request.uri, request.version)).encode())
     for header in request.headers:
-        fp.write("%s: %s\r\n" % (header, request.headers[header]))
-    fp.write("\r\n")
-    fp.write(request.body)
+        fp.write(("%s: %s\r\n" % (header, request.headers[header])).encode())
+    fp.write(("\r\n").encode())
+    if isinstance(request.body, str):
+        fp.write(request.body.encode())
+    else:
+        fp.write(request.body)
     fp.close()
 
 def http_send_reply(socket, reply):
-    fp = socket.makefile()
-    fp.write("%s %d %s\r\n" % (reply.version, reply.code, reply.message))
+    fp = socket.makefile(mode='rwb')
+    fp.write(("%s %d %s\r\n" % (reply.version, reply.code, reply.message)).encode())
     for header in reply.headers:
-        fp.write("%s: %s\r\n" % (header, reply.headers[header]))
-    fp.write("\r\n")
-    fp.write(reply.body)
+        fp.write(("%s: %s\r\n" % (header, reply.headers[header])).encode())
+    fp.write(("\r\n").encode())
+    if isinstance(reply.body, str):
+        fp.write(reply.body.encode())
+    else:
+        fp.write(reply.body)
     fp.close()
 
 def http_has_header(headers, header):

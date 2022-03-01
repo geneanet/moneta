@@ -31,7 +31,7 @@ class HTTPClient(object):
             # Request
             http_send_request(self.socket, request)
 
-            fp = self.socket.makefile()
+            fp = self.socket.makefile(mode='rw')
 
             # Query
             line = fp.readline()

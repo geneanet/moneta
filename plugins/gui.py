@@ -47,7 +47,7 @@ class GUIPlugin(object):
             return HTTPReply(code = 500, message='Requested file outside of docroot')
 
         try:
-            fh = open(path, 'r')
+            fh = open(path, 'rb')
             body = fh.read()
             return HTTPReply(body = body)
 
