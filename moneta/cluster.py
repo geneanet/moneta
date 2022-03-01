@@ -99,7 +99,7 @@ class MonetaCluster(object):
 
         # Register node
         try:
-            self.zk.create('/moneta/nodes/%s' % self.nodename, json.dumps({ "address": self.addr, "pools": self.mypools}), ephemeral = True, makepath = True)
+            self.zk.create('/moneta/nodes/%s' % self.nodename, json.dumps({ "address": self.addr, "pools": self.mypools}).encode('utf8'), ephemeral = True, makepath = True)
             self.cluster_joined = True
             logger.info("Joined cluster")
         except NodeExistsError:
@@ -120,7 +120,7 @@ class MonetaCluster(object):
 
         # Set default config if needed
         try:
-            self.zk.create('/moneta/config', json.dumps(self.config.get_config()), makepath = True)
+            self.zk.create('/moneta/config', json.dumps(self.config.get_config()).encode('utf8'), makepath = True)
             logger.info("No cluster config found, default valuess have been set.")
         except NodeExistsError:
             pass
@@ -146,7 +146,7 @@ class MonetaCluster(object):
             for pool in self.mypools:
                 try:
                     logger.debug("Joining pool %s", pool)
-                    self.zk.create('/moneta/pools/%s/%s' % (pool, self.nodename), self.addr, ephemeral = True, makepath = True)
+                    self.zk.create('/moneta/pools/%s/%s' % (pool, self.nodename), self.addr.encode('utf8'), ephemeral = True, makepath = True)
                     logger.info("Joined pool %s", pool)
                 except NodeExistsError:
                     raise Exception("Unable to join pool %s." % pool)
@@ -174,7 +174,7 @@ class MonetaCluster(object):
             return
 
         logger.info("Contending for lead")
-        self.electionticket = self.zk.create('/moneta/election/', self.nodename, ephemeral = True, sequence = True, makepath = True)
+        self.electionticket = self.zk.create('/moneta/election/', self.nodename.encode('utf8'), ephemeral = True, sequence = True, makepath = True)
         self.zk.ChildrenWatch("/moneta/election", self._handle_election_update)
         self.contending_for_lead = True
 
@@ -195,20 +195,20 @@ class MonetaCluster(object):
         """ Return the last time the scheduler was run on the cluster """
         try:
             (tick, stat) = self.zk.get('/moneta/last_tick')
-            return float(tick)
+            return float(tick.decode('utf8'))
         except NoNodeError:
             return None
 
     def update_last_tick(self, tick):
         """ Update the last time the scheduler was run on the cluster """
         try:
-            self.zk.set('/moneta/last_tick', "%f" % tick)
+            self.zk.set('/moneta/last_tick', ("%f" % tick).encode('utf8'))
         except NoNodeError:
-            self.zk.create('/moneta/last_tick', "%f" % tick, makepath = True)
+            self.zk.create('/moneta/last_tick', ("%f" % tick).encode('utf8'), makepath = True)
 
     def update_config(self, config):
         """ Update the cluster shared configuration """
-        self.zk.set('/moneta/config', json.dumps(config))
+        self.zk.set('/moneta/config', json.dumps(config).encode('utf8'))
 
     def _handle_connection_change(self, state):
         """ Handle Zookeeper connection events """
@@ -237,7 +237,7 @@ class MonetaCluster(object):
         """ Handle leader election events (node joined/quitted the election) """
         children.sort()
 
-        nodes = [self.zk.get("/moneta/election/%s" % child)[0] for child in children]
+        nodes = [self.zk.get("/moneta/election/%s" % child)[0].decode('utf8') for child in children]
 
         oldleader = self.leader
 
@@ -256,6 +256,7 @@ class MonetaCluster(object):
 
     def _handle_config_update(self, data, stat):
         """ Handle the shared cluster configuration update """
+        data = data.decode('utf8')
         logger.debug("Cluster config update")
         logger.debug("Cluster config : %s", data)
         self.config.set_config(json.loads(data))
@@ -267,7 +268,7 @@ class MonetaCluster(object):
 
         for child in children:
             try:
-                nodes[child] = json.loads(self.zk.get('/moneta/nodes/%s' % child)[0])
+                nodes[child] = json.loads(self.zk.get('/moneta/nodes/%s' % child)[0].decode('utf8'))
             except NoNodeError:
                 pass
 

@@ -44,6 +44,7 @@ class ExecutionSummaryPlugin(object):
 
         try:
             (summary, stat) = self.cluster.zk.get('/moneta/executionsummary/%s' % (task))
+            summary = summary.decode('utf8')
         except NoNodeError:
             summary = {}
 
@@ -61,6 +62,7 @@ class ExecutionSummaryPlugin(object):
         for task in self.cluster.config.get('tasks'):
             try:
                 (summary, stat) = self.cluster.zk.get('/moneta/executionsummary/%s' % (task))
+                summary = summary.decode('utf8')
                 summary = json.loads(summary)
                 tasks[task] = summary
             except NoNodeError:
@@ -82,9 +84,9 @@ class ExecutionSummaryPlugin(object):
             logger.debug("Updating execution summary for task %s", task)
 
             try:
-                self.cluster.zk.set('/moneta/executionsummary/%s' % (task), json.dumps(summary))
+                self.cluster.zk.set('/moneta/executionsummary/%s' % (task), json.dumps(summary).encode('utf8'))
             except NoNodeError:
-                self.cluster.zk.create('/moneta/executionsummary/%s' % (task), json.dumps(summary), makepath = True)
+                self.cluster.zk.create('/moneta/executionsummary/%s' % (task), json.dumps(summary).encode('utf8'), makepath = True)
 
         except Exception as e:
             logger.error('Cant update execution summary (%s)', str(e))
