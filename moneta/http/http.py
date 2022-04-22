@@ -146,7 +146,10 @@ class HTTPRequest(object):
         else:
             self.headers = {}
 
-        self.body = body
+        if isinstance(body, str):
+            self.body = body.encode()
+        else:
+            self.body = body
 
         if not self.has_header('Content-Length'):
             self.set_header('Content-Length', len(self.body))
