@@ -37,6 +37,7 @@ class AuditPlugin(object):
 
         self.cluster.config.create_key('audit', {
             'url': None,
+            'headers': None,
             'index': None,
             'dateformat': None
         }, self.__validate_config)
@@ -56,11 +57,14 @@ class AuditPlugin(object):
         if not isinstance(config, dict):
             raise TypeError('Value must be a dictionary')
 
-        if not set(config.keys()).issubset(set(['url', 'index', 'dateformat'])):
-            raise ValueError('Allowed keys are: url, index and dateformat')
+        if not set(config.keys()).issubset(set(['url', 'headers', 'index', 'dateformat'])):
+            raise ValueError('Allowed keys are: url, headers, index and dateformat')
 
         if not config['url'] or not config['index']:
             raise ValueError('Keys url and index must be specified')
+        
+        if config['headers'] and not isinstance(config['headers'], dict):
+            raise ValueError('Key headers must be a dictionnary')
 
     def __get_elasticsearch_config(self, dtfrom=None, dtuntil=None):
         """ Return a tuple (address, path, index) used to query the ES server """
@@ -96,15 +100,20 @@ class AuditPlugin(object):
 
         if index == '':
             raise ValueError('Index name can not be empty')
+        
+        headers = esconfig['headers'].copy() if 'headers' in esconfig and esconfig['headers'] else {}
 
-        return (addr, path, index)
+        return (addr, path, index, headers)
 
     def __send_elasticsearch_record(self, record):
         """ Send a new record to ES """
-        (addr, path, index) = self.__get_elasticsearch_config()
+        (addr, path, index, request_headers) = self.__get_elasticsearch_config()
+
+        request_headers['Content-Type'] = 'application/json'
+        body = json.dumps(record)
 
         client = HTTPClient(addr)
-        ret = client.request(HTTPRequest(uri = "%s%s/_doc/" % (path, index), method = 'POST', body = json.dumps(record), headers={'Content-Type': 'application/json'}))
+        ret = client.request(HTTPRequest(uri = "%s%s/_doc/" % (path, index), method = 'POST', body = body, headers = request_headers))
 
         if ret.code >= 400:
             raise Exception("Unable to log in ElasticSearch: Response code %d (%s)" % (ret.code, ret.body))
@@ -245,7 +254,7 @@ class AuditPlugin(object):
         else:
             eventtype = None
 
-        (addr, path, index) = self.__get_elasticsearch_config(dtfrom=dtfrom, dtuntil=dtuntil)
+        (addr, path, index, request_headers) = self.__get_elasticsearch_config(dtfrom=dtfrom, dtuntil=dtuntil)
 
         uri = "%s%s/_search?ignore_unavailable=true&allow_no_indices=true&size=%d&from=%d" % (path, index, limit, offset)
         query = {
@@ -304,8 +313,10 @@ class AuditPlugin(object):
         logger.debug("ES URL: %s%s/_search", path, index)
         logger.debug("ES Query:\n%s", query)
 
+        request_headers['Content-Type'] = 'application/json'
+
         client = HTTPClient(addr)
-        answer = client.request(HTTPRequest(uri = uri, method = 'GET', body = query, headers = {'Content-Type': 'application/json'}))
+        answer = client.request(HTTPRequest(uri = uri, method = 'GET', body = query, headers = request_headers))
 
         headers = {
             'Content-Type': 'application/javascript',
