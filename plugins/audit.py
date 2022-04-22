@@ -106,7 +106,7 @@ class AuditPlugin(object):
         client = HTTPClient(addr)
         ret = client.request(HTTPRequest(uri = "%s%s/_doc/" % (path, index), method = 'POST', body = json.dumps(record), headers={'Content-Type': 'application/json'}))
 
-        if ret.code > 400:
+        if ret.code >= 400:
             raise Exception("Unable to log in ElasticSearch: Response code %d (%s)" % (ret.code, ret.body))
 
     def onTaskCreated(self, task, config):
