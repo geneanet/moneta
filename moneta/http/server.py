@@ -56,7 +56,7 @@ class HTTPServer(object):
 
         logger.debug("[%s:%d] Incoming connection", *address)
 
-        fp = socket.makefile(mode='rw')
+        fp = socket.makefile(mode='rwb')
 
         keepalive = True
 
@@ -69,7 +69,7 @@ class HTTPServer(object):
                     logger.debug("[%s:%d] Connection closed", *address)
                     return
                 else:
-                    line = line.strip()
+                    line = line.decode('ISO-8859-1').strip()
                     if line:
                         break
 
@@ -97,7 +97,7 @@ class HTTPServer(object):
                     logger.debug("[%s:%d] Connection closed", *address)
                     return
                 else:
-                    line = line.strip()
+                    line = line.decode('ISO-8859-1').strip()
                     if line == "":
                         break
 
