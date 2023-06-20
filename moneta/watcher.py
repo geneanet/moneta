@@ -16,6 +16,7 @@ from locale import getpreferredencoding
 import sys
 import signal
 from collections import deque
+from resource import getrusage, RUSAGE_CHILDREN
 
 from moneta import json
 from moneta.http.client import HTTPClient
@@ -254,10 +255,15 @@ class MonetaWatcher(object):
             else:
                 status = "error"
 
+            rusage = getrusage(RUSAGE_CHILDREN)
+
             self.report.update({
                 "status": status,
                 "returncode": returncode,
-                "output": output
+                "output": output,
+                "maxrss": rusage.ru_maxrss * 1024,
+                "cputime_user": rusage.ru_utime,
+                "cputime_system": rusage.ru_stime,
             })
 
         except GreenletExit:

@@ -10,6 +10,7 @@ from textwrap import dedent
 import dateutil.tz
 import dateutil.parser
 from jinja2 import Environment
+import math
 
 logger = logging.getLogger('moneta.plugins.mailer')
 
@@ -23,12 +24,15 @@ default_template  = dedent(
     Executed on node: {{ report.node }}
     Started: {{ report.start_time|format_datetime }} (time zone {{ report.start_time|format_datetime('%Z') }})
     Ended: {{ report.end_time|format_datetime }}
-    Duration: {{ report.duration }} seconds
+    Duration: {{ report.duration|format_duration }}
     {% if report.status == 'fail' -%}
     Error: {{ report.error }}
     {%- else -%}
     Return code: {{ report.returncode }}
     {%- endif %}
+    -------------------------------------------------------------------------------
+    Max memory used: {{ report.maxrss|format_bytes }}
+    CPU time: {{ report.cputime_system|format_duration }} system; {{ report.cputime_user|format_duration }} user
     -------------------------------------------------------------------------------
     {% if report.output.buffer|length > 0 -%}
     Program produced {{ report.output.bytes.stdout }} bytes on stdout and {{ report.output.bytes.stderr }} bytes on stderr.
@@ -117,11 +121,35 @@ class MailerPlugin(object):
 
             # Message
             env = Environment()
+
             def format_datetime(dt, format='%x %X'):
                 if 'timezone' in mailerconfig and mailerconfig['timezone']:
                     dt = dt.astimezone(dateutil.tz.gettz(mailerconfig['timezone']))
                 return dt.strftime(format)
             env.filters['format_datetime'] = format_datetime
+
+            def format_bytes(size):
+                units = ['B', 'KB', 'MB', 'GB', 'TB']
+                u = 0
+                while size > 1024:
+                    size /= 1024
+                    u += 1
+                return '%.2f %s' % (size, units[u])
+            env.filters['format_bytes'] = format_bytes
+
+            def format_duration(duration):
+                units = ['d', 'h', 'min', 's', 'ms']
+                units_s = [86400, 3600, 60, 1, 0.001]
+                output = ''
+                for u in range(0, len(units)):
+                    if (duration < units_s[u]):
+                        continue
+                    t = math.floor(duration / units_s[u])
+                    output += '%d%s ' % (t, units[u])
+                    duration %= units_s[u]
+                return output.rstrip()
+            env.filters['format_duration'] = format_duration
+
             template = env.from_string(mailerconfig['template'] if ('template' in mailerconfig and mailerconfig['template']) else default_template)
             mail_body = template.render(task = taskconfig, report = report)
             msg = MIMEText(mail_body, "plain", "utf-8")
