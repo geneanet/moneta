@@ -89,25 +89,25 @@ class HTTPClient(object):
 
             elif http_match_header(headers, 'transfer-encoding', 'chunked'):
                 while True:
-                    chunkheader = fp.readline()
-
+                    chunkheader = fp.readline().rstrip() # Header
                     if not chunkheader:
                         raise Exception("Connection reset by peer")
 
                     try:
-                        chunkheader = chunkheader.split(';')
-                        chunksize = int(chunkheader[0], 16)
+                        chunksize = int(chunkheader, 16)
                     except Exception:
                         raise Exception("Unable to parse chunk header: [%s]" % chunkheader)
 
                     if chunksize == 0:
                         break
 
-                    chunk = fp.read(chunksize + 2)
+                    chunk = fp.read(chunksize) # Chunk
                     if not chunk:
                         raise Exception("Connection reset by peer")
 
-                    body = body + chunk[:chunksize]
+                    body = body + chunk
+
+                    fp.readline() # Trailer
 
             else:
                 while True:
