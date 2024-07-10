@@ -330,9 +330,6 @@ class AuditPlugin(object):
             records = []
             for hit in hits:
                 record = hit['_source'].copy()
-                record.update({
-                    '@type': hit['_type']
-                })
                 records.append(record)
             levels = {}
             for bucket in data['aggregations']['levels']['buckets']:
