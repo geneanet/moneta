@@ -62,7 +62,7 @@ setup(
     # your project is installed. For an analysis of "install_requires" vs pip's
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=['gevent','kazoo','python-dateutil','PyYAML','Jinja2'],
+    install_requires=['gevent>=22.10.2','kazoo>=2.6.1','python-dateutil>=2.8.1','PyYAML>=5.4.1','Jinja2>=3.0.3'],
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,
