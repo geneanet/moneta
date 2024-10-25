@@ -1,5 +1,5 @@
 {
   "name": "Moneta",
-  "version": "1.4.2",
+  "version": "1.4.3",
   "description": "Fault-tolerant distributed tasks scheduler"
 }
