@@ -2,8 +2,11 @@
 
 
 
+import importlib
+import importlib.util
 import logging
-from imp import find_module, load_module
+import os
+import sys
 
 logger = logging.getLogger('moneta.pluginregistry')
 
@@ -31,8 +34,11 @@ class PluginRegistry(object):
             config = {}
 
         try:
-            (filehandle, filepath, description) = find_module(plugin_name, [ self.plugindir ])
-            module = load_module(plugin_name, filehandle, filepath, description)
+            spec = importlib.machinery.PathFinder.find_spec(plugin_name, [self.plugindir])
+            spec = importlib.util.spec_from_file_location(plugin_name, os.path.join(self.plugindir, f'{plugin_name}.py'))
+            module = importlib.util.module_from_spec(spec)
+            sys.modules[plugin_name] = module
+            spec.loader.exec_module(module)
 
             dependencies = []
             for dependency in module.getDependencies():
